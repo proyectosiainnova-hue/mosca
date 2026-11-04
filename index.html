@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mosca">
+<meta name="theme-color" content="#0f1a33">
+<title>El cerebro de la mosca</title>
+<style>
+  :root{
+    --bg:#0f1a33; --panel:#17244a; --ink:#f4f1e8; --muted:#a9b4d0;
+    --nerve:#4fd1ff; --lit:#ffe14d; --accent:#ff6b5a; --ok:#5be38a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-tap-highlight-color:transparent}
+  .wrap{max-width:1100px;margin:0 auto;padding:14px 16px 24px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  h1{font-size:clamp(22px,3.2vw,34px);margin:4px 0}
+  .levels{display:flex;gap:6px;background:var(--panel);padding:5px;border-radius:14px}
+  .levels button{border:0;background:transparent;color:var(--muted);font-size:17px;font-weight:700;
+    padding:9px 14px;border-radius:10px;cursor:pointer}
+  .levels button.on{background:var(--ink);color:var(--bg)}
+  .stage{position:relative;margin-top:10px;border-radius:18px;overflow:hidden;
+    background:linear-gradient(#1b2b58,#132042 70%,#0f1a33)}
+  svg{display:block;width:100%;height:auto}
+  .caption{margin-top:12px;background:var(--panel);border-radius:16px;padding:14px 18px;
+    min-height:84px;display:flex;align-items:center;gap:14px}
+  .step{flex:none;width:46px;height:46px;border-radius:50%;background:var(--lit);color:#1a1a1a;
+    font-weight:800;font-size:22px;display:flex;align-items:center;justify-content:center}
+  .step.idle{background:#33437a;color:var(--muted)}
+  #capText{font-size:clamp(18px,2.4vw,26px);line-height:1.3}
+  .controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .controls button{border:0;border-radius:14px;padding:14px 20px;font-size:19px;font-weight:800;cursor:pointer;
+    color:#1a1a1a;background:var(--ink)}
+  .controls button.go{background:var(--accent);color:#fff}
+  .controls button.fast{background:var(--lit)}
+  .controls button.toggle{background:var(--panel);color:var(--ink);border:2px solid #33437a}
+  .controls button.toggle.on{border-color:var(--ok);color:var(--ok)}
+  .controls button:disabled{opacity:.4;cursor:default}
+  #nextBtn{display:none;background:var(--ok)}
+  .compare{margin-top:14px;background:var(--panel);border-radius:16px;padding:12px 14px;display:grid;gap:8px}
+  .row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:clamp(15px,2vw,19px)}
+  .who{width:92px;font-weight:800}
+  .chip{padding:7px 12px;border-radius:999px;background:#22315f;color:var(--muted);transition:all .25s}
+  .chip.on{background:var(--lit);color:#1a1a1a;transform:scale(1.07);box-shadow:0 0 16px rgba(255,225,77,.6)}
+  .arr{color:var(--muted)}
+  footer{margin-top:12px;color:var(--muted);font-size:13px}
+  .tabs{display:flex;gap:8px;margin-top:10px}
+  .tabs button{flex:1;border:2px solid #33437a;background:var(--panel);color:var(--muted);font-size:19px;font-weight:800;
+    padding:12px;border-radius:14px;cursor:pointer}
+  .tabs button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+  .links{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+  .links:empty{display:none}
+  .links a{text-decoration:none;font-size:18px;font-weight:800;padding:13px 18px;border-radius:14px;background:#22315f;color:var(--ink);border:2px solid #4fd1ff}
+  .links a.main{background:var(--accent);border-color:var(--accent);color:#fff}
+  [hidden]{display:none!important}
+  .stage svg{max-height:calc(100vh - 320px);max-height:calc(100dvh - 320px);min-height:240px}
+  @media (max-height:950px){
+    .wrap{padding:8px 12px 16px}
+    h1{font-size:26px;margin:0}
+    .levels button{font-size:16px;padding:7px 12px}
+    .tabs{margin-top:6px}.tabs button{padding:8px;font-size:17px}
+    .stage{margin-top:6px}
+    .caption{margin-top:8px;min-height:56px;padding:10px 14px}
+    #capText,#iText{font-size:19px}
+    .step{width:38px;height:38px;font-size:19px}
+    .controls{margin-top:8px;gap:8px}
+    .controls button{padding:10px 14px;font-size:16px}
+    .links{margin-top:8px}.links a{padding:9px 14px;font-size:16px}
+  }
+  /* SVG */
+  .nerve{fill:none;stroke:var(--nerve);stroke-width:5;stroke-linecap:round;opacity:.45}
+  .lit{fill:none;stroke:var(--lit);stroke-width:8;stroke-linecap:round;filter:url(#glow)}
+  .node{fill:#1d4a66;stroke:var(--nerve);stroke-width:3;transition:fill .2s}
+  .node.on{fill:var(--lit);stroke:#fff;animation:pulse .6s ease-out}
+  @keyframes pulse{0%{r:10}40%{r:18}100%{r:10}}
+  .lab rect{fill:#0d1630;stroke:#33437a;stroke-width:2;transition:all .25s}
+  .lab text{fill:var(--ink);font-size:20px;font-weight:700}
+  .lab line{stroke:#5b6b9a;stroke-width:2;stroke-dasharray:5 5}
+  .lab.on rect{fill:var(--lit);stroke:#fff}
+  .lab.on text{fill:#1a1a1a}
+  .lab.on line{stroke:var(--lit);stroke-dasharray:none}
+  #labels{transition:opacity .4s}
+  #wings{transform-origin:620px 268px}
+  #wings.flap{animation:flap .06s linear infinite alternate}
+  @keyframes flap{from{transform:rotate(0deg)}to{transform:rotate(-40deg)}}
+  #paf{font-size:64px;font-weight:900;fill:#fff;stroke:#c62828;stroke-width:4;paint-order:stroke;opacity:0}
+  #saved{opacity:0;transition:opacity .4s}
+  .ph rect{fill:#0d1630;stroke:#33437a;stroke-width:2;transition:all .25s}
+  .ph text{fill:#a9b4d0}
+  .ph.on text{fill:#0f1a33}
+  svg.lvl1 .lab text{font-size:26px}
+  svg.lvl1 .node.n1{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>🪰 El cerebro de la mosca</h1>
+    <div class="levels" id="levels">
+      <button data-level="1" class="on">1º–2º</button>
+      <button data-level="2">3º–4º</button>
+      <button data-level="3">5º</button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button id="tabIntro" class="on">📖 1. La historia</button>
+    <button id="tabAnim">⚡ 2. ¿Cómo escapa?</button>
+  </nav>
+
+  <section id="introView">
+    <div class="stage">
+      <svg id="isvg" viewBox="0 0 1000 540" aria-label="Historia del proyecto FlyWire">
+        <defs>
+          <filter id="glow2" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        <text id="iTitle" x="500" y="58" text-anchor="middle" font-size="38" font-weight="900" fill="#f4f1e8"></text>
+        <g id="scene"></g>
+        <text id="iCount" x="975" y="520" text-anchor="end" fill="#a9b4d0" font-size="18" font-weight="800"></text>
+      </svg>
+    </div>
+    <div class="caption"><div class="step" id="iNum">1</div><div id="iText"></div></div>
+    <div id="iLinks" class="links"></div>
+    <div class="controls">
+      <button class="toggle" id="iPrev">◀ Anterior</button>
+      <button class="go" id="iNext">Siguiente ▶</button>
+      <button class="toggle" id="iAgain">↺ Repetir escena</button>
+    </div>
+  </section>
+
+  <section id="animView" hidden>
+
+  <div class="stage">
+    <svg id="svg" viewBox="0 0 1000 540" aria-label="Animación de la neurona de escape de la mosca">
+      <defs>
+        <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="4" result="b"/>
+          <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <pattern id="facets" width="7" height="7" patternUnits="userSpaceOnUse">
+          <circle cx="3.5" cy="3.5" r="2.4" fill="#ff8a80" opacity=".55"/>
+        </pattern>
+        <pattern id="mesh" width="14" height="14" patternUnits="userSpaceOnUse">
+          <path d="M0 0H14M0 0V14" stroke="#ffb3a8" stroke-width="2" opacity=".7"/>
+        </pattern>
+        <radialGradient id="dotG"><stop offset="0" stop-color="#fff"/><stop offset=".5" stop-color="#ffe14d"/><stop offset="1" stop-color="#ffb300"/></radialGradient>
+      </defs>
+
+      <!-- suelo -->
+      <rect x="0" y="476" width="1000" height="64" fill="#26365f"/>
+      <line x1="0" y1="476" x2="1000" y2="476" stroke="#3d5088" stroke-width="3"/>
+
+      <!-- MOSCA -->
+      <g id="fly">
+        <!-- patas -->
+        <g stroke="#d9c7a8" stroke-width="6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M560,375 L522,422 L500,472"/>
+          <path id="midLeg" d="M612,385 L655,428 L635,472"/>
+          <path d="M662,372 L722,420 L748,472"/>
+        </g>
+        <!-- abdomen -->
+        <ellipse cx="760" cy="335" rx="105" ry="58" fill="#8b7558" stroke="#e8dcc8" stroke-width="3"/>
+        <g stroke="#5a4732" stroke-width="7" opacity=".7">
+          <path d="M735,282 Q745,335 735,390"/><path d="M775,282 Q785,335 775,390"/><path d="M815,292 Q823,335 815,380"/>
+        </g>
+        <!-- alas -->
+        <g id="wings">
+          <ellipse cx="705" cy="232" rx="125" ry="36" transform="rotate(-14 620 268)"
+                   fill="rgba(200,230,255,.35)" stroke="#cfe6ff" stroke-width="2.5"/>
+          <path d="M625,262 Q700,236 800,218" stroke="#cfe6ff" stroke-width="1.5" fill="none" opacity=".6"/>
+        </g>
+        <!-- tórax -->
+        <ellipse cx="600" cy="320" rx="92" ry="68" fill="#7a6650" stroke="#e8dcc8" stroke-width="3"/>
+        <!-- cabeza -->
+        <circle cx="482" cy="290" r="62" fill="#6f5c48" stroke="#e8dcc8" stroke-width="3"/>
+        <path d="M470,232 Q455,200 440,195 M490,230 Q492,198 505,190" stroke="#e8dcc8" stroke-width="3" fill="none"/>
+        <!-- ojo compuesto -->
+        <ellipse id="eye" cx="442" cy="292" rx="30" ry="42" fill="#c62828" stroke="#ffcdd2" stroke-width="2"/>
+        <ellipse cx="442" cy="292" rx="30" ry="42" fill="url(#facets)"/>
+        <!-- cerebro (translúcido) -->
+        <ellipse cx="492" cy="266" rx="40" ry="27" fill="#f8bbd0" opacity=".28" stroke="#f8bbd0" stroke-width="1.5"/>
+
+        <!-- vía nerviosa -->
+        <g id="nerves">
+          <path class="nerve seg" d="M428,300 Q442,278 462,272"/>
+          <path class="nerve seg" d="M462,272 Q482,258 500,255"/>
+          <path class="nerve seg" d="M500,255 C530,255 540,290 548,305 C560,330 590,335 605,350 C612,360 613,372 612,385"/>
+          <path class="nerve seg" d="M612,385 L655,428 L635,472"/>
+        </g>
+        <g id="litPaths"></g>
+        <circle class="node" cx="428" cy="300" r="10"/>
+        <circle class="node" cx="462" cy="272" r="10"/>
+        <circle class="node" cx="500" cy="255" r="10"/>
+        <circle class="node" cx="612" cy="385" r="10"/>
+        <circle id="dot" r="11" fill="url(#dotG)" filter="url(#glow)" opacity="0"/>
+      </g>
+
+      <!-- NIVEL 5º: varias neuronas detectoras que llegan a la fibra gigante -->
+      <g id="extra" style="display:none">
+        <path class="nerve xseg" d="M432,282 Q460,250 500,255"/>
+        <path class="nerve xseg" d="M434,318 Q475,300 500,255"/>
+        <path class="nerve xseg" d="M445,262 Q470,240 500,255"/>
+        <circle class="xdot" r="8" fill="url(#dotG)" filter="url(#glow)" opacity="0"/>
+        <circle class="xdot" r="8" fill="url(#dotG)" filter="url(#glow)" opacity="0"/>
+        <circle class="xdot" r="8" fill="url(#dotG)" filter="url(#glow)" opacity="0"/>
+      </g>
+
+      <!-- NIVEL 5º: osciloscopio -->
+      <g id="scope" style="display:none">
+        <rect x="20" y="16" width="270" height="120" rx="12" fill="#081022" stroke="#33437a" stroke-width="2"/>
+        <text x="34" y="40" fill="#a9b4d0" font-size="15" font-weight="700">Voltaje de la fibra gigante</text>
+        <line x1="34" y1="110" x2="276" y2="110" stroke="#2b3a66" stroke-width="2"/>
+        <polyline id="trace" fill="none" stroke="#5be38a" stroke-width="3" stroke-linejoin="round" points=""/>
+        <text id="spikeTxt" x="200" y="62" fill="#ffe14d" font-size="15" font-weight="800" opacity="0">¡disparo!</text>
+      </g>
+
+      <!-- NIVEL 3º–4º: sentir, pensar, moverse -->
+      <g id="phases" style="display:none" font-size="22" font-weight="900" text-anchor="middle">
+        <g class="ph" data-c="#4fd1ff"><rect x="270" y="18" width="140" height="46" rx="23"/><text x="340" y="49">SENTIR</text></g>
+        <text x="430" y="49" fill="#a9b4d0">→</text>
+        <g class="ph" data-c="#ffe14d"><rect x="450" y="18" width="140" height="46" rx="23"/><text x="520" y="49">PENSAR</text></g>
+        <text x="610" y="49" fill="#a9b4d0">→</text>
+        <g class="ph" data-c="#5be38a"><rect x="630" y="18" width="150" height="46" rx="23"/><text x="705" y="49">MOVERSE</text></g>
+      </g>
+
+      <text id="lvlBadge" x="980" y="515" text-anchor="end" fill="#a9b4d0" font-size="20" font-weight="800"></text>
+
+      <!-- etiquetas -->
+      <g id="labels"></g>
+
+      <!-- MATAMOSCAS -->
+      <g id="swatter">
+        <line x1="0" y1="90" x2="-70" y2="360" stroke="#8d2a1f" stroke-width="16" stroke-linecap="round"/>
+        <rect x="-70" y="-90" width="140" height="180" rx="22" fill="#e74c3c" stroke="#ffdad4" stroke-width="5"/>
+        <rect x="-60" y="-80" width="120" height="160" rx="16" fill="url(#mesh)"/>
+      </g>
+      <text id="paf" x="410" y="200" text-anchor="middle">¡PAF!</text>
+
+      <g id="saved">
+        <rect x="330" y="20" width="340" height="64" rx="18" fill="#5be38a"/>
+        <text x="500" y="63" text-anchor="middle" font-size="34" font-weight="900" fill="#0f1a33">¡Se salvó! 🎉</text>
+      </g>
+    </svg>
+  </div>
+
+  <div class="caption">
+    <div class="step idle" id="stepNum">?</div>
+    <div id="capText">Toca <b>¡Matamoscas!</b> para ver cómo el cerebro de la mosca la salva.</div>
+  </div>
+
+  <div class="controls">
+    <button class="go" id="slowBtn">🐢 ¡Matamoscas! (cámara lenta)</button>
+    <button class="fast" id="fastBtn">⚡ Velocidad real</button>
+    <button id="nextBtn">Siguiente ▶</button>
+    <button class="toggle" id="stepBtn">👆 Paso a paso: NO</button>
+    <button class="toggle on" id="soundBtn">🔊 Sonido: SÍ</button>
+    <button class="toggle" id="resetBtn">↺ Reiniciar</button>
+  </div>
+
+  <div class="compare">
+    <div class="row"><span class="who">🪰 Mosca</span>
+      <span class="chip c1">👁️ Ojo</span><span class="arr">→</span>
+      <span class="chip c2">⚡ Neurona gigante</span><span class="arr">→</span>
+      <span class="chip c3">🦵 Patas: ¡salta!</span></div>
+    <div class="row"><span class="who">🤖 Robot</span>
+      <span class="chip c1">📡 Sensor ultrasonido</span><span class="arr">→</span>
+      <span class="chip c2">🧠 Arduino</span><span class="arr">→</span>
+      <span class="chip c3">🔊 Buzzer: ¡suena!</span></div>
+  </div>
+
+  </section>
+
+  <footer>Basado en el proyecto FlyWire (Universidad de Princeton y colaboradores, flywire.ai). Dibujos simplificados para la clase.</footer>
+</div>
+
+<script>
+const LABELS = {
+  1: ['👁️ Ojo','','⚡ Cerebro','🦵 Patas'],
+  2: ['Ojo (SENTIR)','Detectores de peligro','Neurona gigante (PENSAR)','Músculo del salto (MOVERSE)'],
+  3: ['Ojo compuesto','Neuronas LC4 / LPLC2','Fibra gigante (DNp01)','Motoneurona y músculo TTM']
+};
+const CAPS = {
+  1: [
+    '¡Cuidado! ¡Viene el matamoscas!',
+    'El ojo de la mosca lo ve.',
+    'El ojo le avisa al cerebro: ¡peligro!',
+    'La neurona gigante manda un mensaje: ¡SALTA!',
+    'El mensaje llega a los músculos de las patas…',
+    '¡La mosca salta y se va volando!',
+    '¡Se salvó! Su cerebro mandó un mensaje súper rápido.'
+  ],
+  2: [
+    'Algo se acerca muy rápido: el matamoscas se ve cada vez más grande.',
+    'SENTIR: el ojo detecta que algo crece muy rápido frente a él.',
+    'Unas neuronas especiales reconocen el peligro y dan la alarma.',
+    'PENSAR: la neurona gigante recibe la alarma y decide: ¡escapar!',
+    'El mensaje baja por el cuello hasta el músculo del salto.',
+    'MOVERSE: las patas del medio empujan y la mosca despega.',
+    'Sentir → pensar → moverse. ¡Igual que nuestro robot con su sensor!'
+  ],
+  3: [
+    'Estímulo: un objeto que se aproxima crece rápidamente en el campo visual.',
+    'Los fotorreceptores del ojo compuesto captan el cambio de luz y sombra.',
+    'Las neuronas LC4 y LPLC2 del lóbulo óptico detectan la expansión y activan la vía de escape.',
+    'La fibra gigante (DNp01) suma esas señales y dispara un impulso eléctrico.',
+    'Su axón baja por el cordón nervioso y activa la motoneurona del músculo del salto (TTM).',
+    'El músculo TTM extiende las patas medias: despegue en milisegundos.',
+    'Pocas neuronas en fila = respuesta rapidísima. Estas mismas neuronas se pueden ver en FlyWire.'
+  ]
+};
+const ANCHORS = [[428,300],[462,272],[500,255],[612,385]];
+const BOXES   = [[300,398],[290,118],[595,150],[625,420]];
+const CHIP_FOR_STAGE = {1:'c1',2:'c1',3:'c2',4:'c3',5:'c3'};
+
+let level = 1, stepMode = false, sound = true, run = 0, audio = null, stepResolve = null;
+const $ = s => document.querySelector(s);
+const svg = $('#svg'), fly = $('#fly'), wings = $('#wings'), dot = $('#dot'),
+      swatter = $('#swatter'), paf = $('#paf'), saved = $('#saved'), labelsG = $('#labels');
+const segs = [...document.querySelectorAll('.seg')];
+const nodes = [...document.querySelectorAll('.node')];
+const NS = 'http://www.w3.org/2000/svg';
+
+// trazos iluminados
+const lits = segs.map(p => {
+  const l = p.cloneNode(); l.setAttribute('class','lit');
+  const L = p.getTotalLength(); l.style.strokeDasharray = L; l.style.strokeDashoffset = L;
+  $('#litPaths').appendChild(l); return l;
+});
+
+// etiquetas
+function buildLabels(){
+  labelsG.innerHTML = '';
+  LABELS[level].forEach((txt,i) => {
+    const g = document.createElementNS(NS,'g'); g.setAttribute('class','lab');
+    if (!txt){ g.style.display='none'; labelsG.appendChild(g); return; }
+    const [bx,by] = BOXES[i], [ax,ay] = ANCHORS[i];
+    const line = document.createElementNS(NS,'line');
+    const rect = document.createElementNS(NS,'rect');
+    const t = document.createElementNS(NS,'text');
+    t.textContent = level===1 ? txt : (i+1)+'. '+txt;
+    if (level===2){ g.dataset.c = PHASE_COLORS[i]; } t.setAttribute('x',bx+12); t.setAttribute('y',by+28);
+    g.append(line,rect,t); labelsG.appendChild(g);
+    const w = t.getBBox().width + 24;
+    rect.setAttribute('x',bx); rect.setAttribute('y',by); rect.setAttribute('width',w);
+    rect.setAttribute('height',42); rect.setAttribute('rx',10);
+    const cx = Math.min(Math.max(ax,bx+10),bx+w-10);
+    line.setAttribute('x1',cx); line.setAttribute('y1', ay < by ? by : by+42);
+    line.setAttribute('x2',ax); line.setAttribute('y2',ay);
+    if (level===2){ rect.style.stroke = PHASE_COLORS[i]; rect.style.strokeWidth = 3; }
+  });
+}
+
+const PHASE_COLORS = ['#4fd1ff','#4fd1ff','#ffe14d','#5be38a'];
+const BADGES = {1:'Nivel 1º–2º · Exploradores', 2:'Nivel 3º–4º · Investigadores', 3:'Nivel 5º · Científicos'};
+const xsegs = [...document.querySelectorAll('.xseg')], xdots = [...document.querySelectorAll('.xdot')];
+nodes[1].classList.add('n1');
+
+function applyLevel(){
+  svg.setAttribute('class','lvl'+level);
+  $('#phases').style.display = level===2 ? '' : 'none';
+  $('#extra').style.display  = level===3 ? '' : 'none';
+  $('#scope').style.display  = level===3 ? '' : 'none';
+  $('#lvlBadge').textContent = BADGES[level];
+  buildLabels();
+}
+function phase(i){ // 0 sentir, 1 pensar, 2 moverse, -1 ninguna
+  document.querySelectorAll('.ph').forEach((g,j) => {
+    const on = j===i; g.classList.toggle('on',on);
+    g.querySelector('rect').style.fill = on ? g.dataset.c : '';
+  });
+}
+function scopeReset(){ $('#trace').setAttribute('points','34,110 276,110'); $('#spikeTxt').style.opacity=0; }
+function spike(ms){
+  const pts=[]; for(let x=34;x<=276;x+=2){
+    const u=(x-34)/242; let y=110;
+    if(u>.4&&u<.46) y=110-((u-.4)/.06)*70;      // subida
+    else if(u>=.46&&u<.55) y=40+((u-.46)/.09)*82; // bajada
+    else if(u>=.55&&u<.7) y=122-((u-.55)/.15)*12; // recuperación
+    pts.push(x+','+y.toFixed(1)); }
+  return tween(ms, t => {
+    $('#trace').setAttribute('points', pts.slice(0, Math.max(2,Math.round(pts.length*t))).join(' '));
+    if (t>.45) $('#spikeTxt').style.opacity=1;
+  });
+}
+function converge(ms){ // varias neuronas detectoras se suman
+  return tween(ms, t => xsegs.forEach((p,i) => {
+    const L=p.getTotalLength(), pt=p.getPointAtLength(L*Math.min(1,t*(1+i*.15)));
+    xdots[i].setAttribute('opacity', t<1?1:0); xdots[i].setAttribute('cx',pt.x); xdots[i].setAttribute('cy',pt.y);
+  }));
+}
+
+// utilidades de animación
+const ease = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+function tween(ms, fn){
+  const id = run;
+  return new Promise(res => {
+    const t0 = performance.now();
+    function f(now){
+      if (id !== run) return res();
+      const t = Math.min(1,(now-t0)/Math.max(ms,1)); fn(t);
+      t < 1 ? requestAnimationFrame(f) : res();
+    }
+    requestAnimationFrame(f);
+  });
+}
+const sleep = ms => tween(ms, ()=>{});
+function setSwatter(x,y,s){ swatter.setAttribute('transform',`translate(${x},${y}) scale(${s})`); }
+function setFly(x,y,r){ fly.setAttribute('transform',`translate(${x},${y}) rotate(${r} 600 320)`); }
+
+function beep(){
+  if (!sound) return;
+  try{
+    audio = audio || new (window.AudioContext||window.webkitAudioContext)();
+    const o = audio.createOscillator(), g = audio.createGain();
+    o.type='square'; o.frequency.value=1000; g.gain.value=.08;
+    o.connect(g); g.connect(audio.destination); o.start(); o.stop(audio.currentTime+.25);
+  }catch(e){}
+}
+
+function caption(stage, text){
+  $('#stepNum').textContent = stage; $('#stepNum').classList.toggle('idle', stage==='?');
+  $('#capText').innerHTML = text;
+}
+function chips(cls){
+  document.querySelectorAll('.chip').forEach(c => c.classList.toggle('on', !!cls && c.classList.contains(cls)));
+}
+function label(i){ [...labelsG.children].forEach((g,j)=>g.classList.toggle('on', j===i)); }
+
+function waitStep(ms){
+  if (!stepMode) return sleep(ms);
+  const id = run;
+  $('#nextBtn').style.display='inline-block';
+  return new Promise(res => { stepResolve = () => { $('#nextBtn').style.display='none'; stepResolve=null; res(); };
+    const chk = setInterval(()=>{ if(id!==run){ clearInterval(chk); if(stepResolve) stepResolve(); } },200); });
+}
+
+function travel(i, ms){
+  const p = segs[i], L = p.getTotalLength(); dot.setAttribute('opacity',1);
+  return tween(ms, t => {
+    const pt = p.getPointAtLength(L*t);
+    dot.setAttribute('cx',pt.x); dot.setAttribute('cy',pt.y);
+    lits[i].style.strokeDashoffset = L*(1-t);
+  });
+}
+
+function resetScene(msg=true){
+  run++;
+  if (stepResolve) stepResolve();
+  setFly(0,0,0); wings.classList.remove('flap');
+  setSwatter(160,250,.25); paf.style.opacity=0; saved.style.opacity=0;
+  labelsG.style.opacity=1; label(-1); chips(null);
+  nodes.forEach(n=>n.classList.remove('on')); dot.setAttribute('opacity',0);
+  lits.forEach((l,i)=> l.style.strokeDashoffset = segs[i].getTotalLength());
+  $('#eye').setAttribute('fill','#c62828');
+  $('#nextBtn').style.display='none';
+  phase(-1); scopeReset(); xdots.forEach(d=>d.setAttribute('opacity',0));
+  $('#phases').style.opacity=1; $('#scope').style.opacity=1;
+  if (msg) caption('?','Toca <b>¡Matamoscas!</b> para ver cómo el cerebro de la mosca la salva.');
+  setButtons(false);
+}
+function setButtons(busy){ $('#slowBtn').disabled = busy; $('#fastBtn').disabled = busy; }
+
+async function play(real){
+  resetScene(false); const id = run; setButtons(true);
+  const C = CAPS[level], k = real ? .07 : 1, W = real ? 40 : 1700;
+  const live = () => id === run;
+  const say = (s) => { if (!real) caption(s, C[s]); };
+  if (real) caption('⚡','¡Atentos! Esto pasa a velocidad real…');
+
+  say(0);
+  await tween(real?1300:2400, t => { const e=ease(t); setSwatter(160+140*e, 250+30*e, .25+.65*e); });
+  if(!live()) return; await waitStep(real?100:900); if(!live()) return;
+
+  // 1 ojo
+  say(1); nodes[0].classList.add('on'); label(0); chips('c1'); phase(0); $('#eye').setAttribute('fill','#ff5252');
+  await waitStep(W); if(!live()) return;
+  // 2 detectores
+  say(2); await travel(0, 900*k); if(!live()) return; nodes[1].classList.add('on'); label(1);
+  await waitStep(W); if(!live()) return;
+  // 3 neurona gigante
+  say(3); phase(1);
+  await Promise.all([travel(1, 800*k), level===3 ? converge(900*k) : null]); if(!live()) return;
+  nodes[2].classList.add('on'); label(2); chips('c2');
+  if (level===3) { await spike(real?150:1400); if(!live()) return; }
+  await waitStep(W); if(!live()) return;
+  // 4 músculo
+  say(4); phase(2); await travel(2, 1600*k); if(!live()) return; nodes[3].classList.add('on'); label(3); chips('c3');
+  await waitStep(W); if(!live()) return;
+  // 5 salto
+  say(5); await travel(3, 600*k); if(!live()) return;
+  beep(); dot.setAttribute('opacity',0); labelsG.style.opacity=0; wings.classList.add('flap');
+  const jump = tween(1300, t => { const e=ease(t); setFly(520*e, -470*e + 60*Math.sin(Math.PI*e), -18*e); });
+  const slam = (async()=>{ await sleep(250);
+    await tween(220, t => setSwatter(300+170*t, 280+40*t, .9+.25*t));
+    paf.setAttribute('x',470); paf.setAttribute('y',190); paf.style.opacity=1; })();
+  await Promise.all([jump, slam]); if(!live()) return;
+  wings.classList.remove('flap');
+  await sleep(real?300:900); if(!live()) return;
+
+  // 6 se salvó
+  saved.style.opacity=1; chips(null); $('#phases').style.opacity=0;
+  caption(6, real ? '¡Así de rápido pasa de verdad, más rápido que un parpadeo! Repítelo en <b>cámara lenta</b> para ver cada paso.' : C[6]);
+  setButtons(false);
+}
+
+// controles
+$('#slowBtn').onclick = () => { beepInit(); play(false); };
+$('#fastBtn').onclick = () => { beepInit(); play(true); };
+$('#resetBtn').onclick = () => resetScene();
+$('#nextBtn').onclick = () => { if (stepResolve) stepResolve(); };
+$('#stepBtn').onclick = e => { stepMode=!stepMode; e.target.classList.toggle('on',stepMode);
+  e.target.textContent = '👆 Paso a paso: ' + (stepMode?'SÍ':'NO'); };
+$('#soundBtn').onclick = e => { sound=!sound; e.target.classList.toggle('on',sound);
+  e.target.textContent = (sound?'🔊':'🔇')+' Sonido: ' + (sound?'SÍ':'NO'); };
+document.querySelectorAll('#levels button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#levels button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); level = +b.dataset.level; applyLevel(); resetScene();
+});
+function beepInit(){ try{ audio = audio || new (window.AudioContext||window.webkitAudioContext)(); audio.resume && audio.resume(); }catch(e){} }
+
+applyLevel(); resetScene();
+
+// =================== HISTORIA (INTRO) ===================
+const URLS = {
+  princeton: 'https://www.princeton.edu/news/2024/10/02/mapping-entire-fly-brain-step-toward-understanding-diseases-human-brain',
+  codex: 'https://codex.flywire.ai',
+  dnp01: 'https://codex.flywire.ai/app/view_3d?filter_string=cell_type+%3D%3D+DNp01&case_sensitive=0&whole_word=0&dataset=fafb',
+  flywire: 'https://flywire.ai'
+};
+const sceneG = $('#scene');
+let sc = 0, irun = 0;
+function itween(ms, fn, alive){
+  return new Promise(res => { const t0 = performance.now();
+    (function f(now){ if(!alive()) return res(); const t=Math.min(1,(now-t0)/ms); fn(t); t<1?requestAnimationFrame(f):res(); })(t0); });
+}
+const iwait = (ms, alive) => itween(ms, ()=>{}, alive);
+const fmt = n => Math.round(n).toLocaleString('es-CO');
+const el = (id) => sceneG.querySelector('#'+id);
+function fadeIn(ids, ms, alive){ return itween(ms, t => ids.forEach(i => { const e=el(i); if(e) e.style.opacity=t; }), alive); }
+
+function brain(cx, cy, s, extra=''){
+  return `<g transform="translate(${cx} ${cy}) scale(${s})" ${extra}>
+    <ellipse cx="-165" cy="0" rx="70" ry="95" fill="#f8bbd0" fill-opacity=".22" stroke="#f8bbd0" stroke-width="3"/>
+    <ellipse cx="165" cy="0" rx="70" ry="95" fill="#f8bbd0" fill-opacity=".22" stroke="#f8bbd0" stroke-width="3"/>
+    <ellipse cx="0" cy="0" rx="115" ry="82" fill="#f8bbd0" fill-opacity=".28" stroke="#f8bbd0" stroke-width="3"/>
+  </g>`;
+}
+function rndInBrain(){ // punto aleatorio dentro de la forma del cerebro (coordenadas locales)
+  const e = [[-165,0,70,95],[165,0,70,95],[0,0,115,82],[0,0,115,82]][Math.floor(Math.random()*4)];
+  const a=Math.random()*Math.PI*2, r=Math.sqrt(Math.random())*.92;
+  return [e[0]+Math.cos(a)*e[2]*r, e[1]+Math.sin(a)*e[3]*r];
+}
+const NEURO_COLORS = ['#4fd1ff','#ff6b9a','#ffe14d','#5be38a','#b388ff','#ff9f43','#00e5c0','#ff5252'];
+function neuronPaths(n){
+  let out='';
+  for(let i=0;i<n;i++){
+    const [x1,y1]=rndInBrain(), [x2,y2]=rndInBrain(), [c1x,c1y]=rndInBrain(), [c2x,c2y]=rndInBrain();
+    out += `<path class="np" d="M${x1|0},${y1|0} C${c1x|0},${c1y|0} ${c2x|0},${c2y|0} ${x2|0},${y2|0}" stroke="${NEURO_COLORS[i%8]}" stroke-width="1.6" fill="none" opacity="0"/>`;
+  }
+  return out;
+}
+
+const INTRO = [
+  { title:'Conoce a la mosca de la fruta',
+    text:{1:'Esta mosquita vive cerca de las frutas maduras. ¡Su cerebro es más pequeño que la punta de un lápiz!',
+          2:'La mosca de la fruta es diminuta, pero su cerebro le permite volar, caminar, buscar comida y escapar del peligro.',
+          3:'<i>Drosophila melanogaster</i>: su cerebro mide menos de 1 mm, pero controla el vuelo, la navegación, la memoria y hasta el “canto” con el que corteja.'},
+    async run(alive){
+      sceneG.innerHTML = `
+        <text x="250" y="360" font-size="200" text-anchor="middle">🪰</text>
+        <line id="z1" x1="300" y1="250" x2="510" y2="200" stroke="#a9b4d0" stroke-width="3" stroke-dasharray="8 8" opacity="0"/>
+        <line id="z2" x1="300" y1="290" x2="510" y2="390" stroke="#a9b4d0" stroke-width="3" stroke-dasharray="8 8" opacity="0"/>
+        <g id="lens" opacity="0">
+          <circle cx="690" cy="290" r="190" fill="#0d1630" stroke="#f4f1e8" stroke-width="6"/>
+          ${brain(690,290,.68)}
+          <text x="690" y="430" text-anchor="middle" font-size="24" font-weight="800" fill="#f8bbd0">el cerebro</text>
+        </g>
+        <g id="size" opacity="0"><rect x="560" y="492" width="260" height="38" rx="19" fill="#ffe14d"/>
+          <text x="690" y="518" text-anchor="middle" font-size="21" font-weight="900" fill="#0f1a33">¡menos de 1 milímetro!</text></g>`;
+      await iwait(500,alive); await fadeIn(['z1','z2'],500,alive); await fadeIn(['lens'],900,alive); await fadeIn(['size'],600,alive);
+    }},
+  { title:'Una universidad quiso hacer su mapa',
+    text:{1:'Unos científicos de la Universidad de Princeton, en Estados Unidos, quisieron dibujar el mapa de su cerebro. ¡Neurona por neurona!',
+          2:'En 2018, los científicos Mala Murthy y Sebastian Seung, de la Universidad de Princeton (Estados Unidos), empezaron el proyecto FlyWire: el mapa completo del cerebro de la mosca.',
+          3:'FlyWire nació en 2018 en el Instituto de Neurociencia de Princeton, dirigido por Mala Murthy y Sebastian Seung. Al final participaron más de 140 laboratorios de todo el mundo.'},
+    async run(alive){
+      const cols = [0,1,2,3,4,5].map(i=>`<rect x="${250+i*52}" y="250" width="26" height="170" fill="#e8dcc8"/>`).join('');
+      sceneG.innerHTML = `
+        <g id="bld" opacity="0">
+          <polygon points="220,250 410,150 600,250" fill="#ff9f43" stroke="#f4f1e8" stroke-width="4"/>
+          <rect x="230" y="236" width="360" height="18" fill="#e8dcc8"/>${cols}
+          <rect x="220" y="420" width="380" height="24" fill="#e8dcc8"/><rect x="200" y="444" width="420" height="22" fill="#cdbfa7"/>
+          <text x="410" y="230" text-anchor="middle" font-size="40">🎓</text>
+          <text x="410" y="505" text-anchor="middle" font-size="26" font-weight="900" fill="#f4f1e8">Universidad de Princeton</text>
+          <text x="410" y="532" text-anchor="middle" font-size="19" fill="#a9b4d0">Estados Unidos</text>
+        </g>
+        <g id="sci" opacity="0">
+          <text x="690" y="260" text-anchor="middle" font-size="110">👩‍🔬</text>
+          <text x="900" y="260" text-anchor="middle" font-size="110">👨‍🔬</text>
+          ${level>1 ? `<text x="690" y="300" text-anchor="middle" font-size="19" font-weight="800" fill="#f4f1e8">Mala Murthy</text>
+          <text x="900" y="300" text-anchor="middle" font-size="19" font-weight="800" fill="#f4f1e8">Sebastian Seung</text>` :
+          `<text x="795" y="300" text-anchor="middle" font-size="22" font-weight="800" fill="#f4f1e8">científicos</text>`}
+        </g>
+        <g id="yr" opacity="0"><rect x="725" y="340" width="140" height="56" rx="28" fill="#ffe14d"/>
+          <text x="795" y="378" text-anchor="middle" font-size="30" font-weight="900" fill="#0f1a33">2018</text></g>
+        <g id="world" opacity="0"><text x="795" y="450" text-anchor="middle" font-size="44">🌎🤝🌍</text>
+          <text x="795" y="485" text-anchor="middle" font-size="18" fill="#a9b4d0">${level===3?'+140 laboratorios':'equipos de todo el mundo'}</text></g>`;
+      await fadeIn(['bld'],800,alive); await fadeIn(['sci'],700,alive); await fadeIn(['yr'],500,alive); await fadeIn(['world'],600,alive);
+    }},
+  { title:'Cortar el cerebro en rebanadas',
+    text:{1:'Cortaron el cerebro en miles de rebanadas finitas, como un pan tajado, y les tomaron fotos con un microscopio súper potente.',
+          2:'El cerebro se cortó en miles de láminas, muchísimo más delgadas que un cabello. Un microscopio electrónico les tomó millones de fotos.',
+          3:'En el laboratorio de Davi Bock (Janelia) cortaron el cerebro en miles de láminas de 40 nanómetros y tomaron 21 millones de imágenes con microscopio electrónico.'},
+    async run(alive){
+      const slices = Array.from({length:16},(_,i)=>`<rect class="sl" x="0" y="0" width="12" height="190" rx="4" fill="#f8bbd0" fill-opacity=".55" stroke="#fff" stroke-width="1.5" transform="translate(240 180)" opacity="0" data-i="${i}"/>`).join('');
+      sceneG.innerHTML = `
+        ${brain(250,275,.55,'id="b3"')}
+        <line id="blade" x1="120" y1="140" x2="120" y2="410" stroke="#4fd1ff" stroke-width="5" filter="url(#glow2)"/>
+        <g id="sls">${slices}</g>
+        <rect id="flash" x="0" y="0" width="1000" height="540" fill="#fff" opacity="0"/>
+        <g id="cam" opacity="0"><text x="800" y="250" text-anchor="middle" font-size="90">🔬📸</text>
+          <text id="photos" x="800" y="330" text-anchor="middle" font-size="34" font-weight="900" fill="#ffe14d"></text>
+          <text x="800" y="365" text-anchor="middle" font-size="19" fill="#a9b4d0">fotos del cerebro</text></g>`;
+      await itween(1600, t => { const x=120+260*t; const b=el('blade'); b.setAttribute('x1',x); b.setAttribute('x2',x); }, alive);
+      el('blade').style.opacity=0; el('b3').style.opacity=.25;
+      const sl=[...sceneG.querySelectorAll('.sl')];
+      await itween(1400, t => sl.forEach((r,i)=>{ const u=Math.max(0,Math.min(1,t*1.6-i*.04));
+        r.setAttribute('opacity',u); r.setAttribute('transform',`translate(${200+u*(110+i*17)} ${180+u*(i%2?8:-8)}) skewY(-12)`); }), alive);
+      await fadeIn(['cam'],400,alive);
+      const target = level===3 ? 21000000 : 0;
+      for(let k=0;k<3 && alive();k++){ await itween(260,t=>el('flash').setAttribute('opacity',.5*(1-t)),alive); }
+      if (!alive()) return;
+      if (level===3) await itween(1500,t=>el('photos').textContent=fmt(target*t),alive);
+      else el('photos').textContent='¡millones!';
+    }},
+  { title:'Inteligencia artificial + miles de ayudantes',
+    text:{1:'Una inteligencia artificial unió las fotos y dibujó las neuronas. Muchas personas revisaron y arreglaron sus errores, ¡como en un videojuego!',
+          2:'Una IA reconoció las neuronas en las fotos, pero se equivocaba mucho. Científicos y voluntarios de todo el mundo corrigieron los errores jugando en línea.',
+          3:'Una red neuronal artificial reconstruyó las neuronas en 3D. Sus millones de errores los corrigieron a mano científicos y “gamers” voluntarios: ciencia ciudadana.'},
+    async run(alive){
+      let tiles='', lines='', errs='';
+      for(let r=0;r<3;r++) for(let c=0;c<4;c++){ const x=120+c*105, y=120+r*105;
+        tiles+=`<rect x="${x}" y="${y}" width="95" height="95" rx="6" fill="#2b3a66" stroke="#4a5b8f"/>`;
+        lines+=`<path class="al" d="M${x+10},${y+20+Math.random()*50} Q${x+47},${y+Math.random()*95} ${x+85},${y+20+Math.random()*50}" stroke="${NEURO_COLORS[(r*4+c)%8]}" stroke-width="4" fill="none" stroke-dasharray="120" stroke-dashoffset="120"/>`; }
+      [[175,175],[385,280],[280,385]].forEach(([x,y],i)=> errs+=`<text class="er" data-i="${i}" x="${x}" y="${y}" text-anchor="middle" font-size="46" font-weight="900" fill="#ff5252" opacity="0">✗</text>`);
+      sceneG.innerHTML = `${tiles}${lines}${errs}
+        <g id="ai" opacity="0"><text x="660" y="230" text-anchor="middle" font-size="100">🤖</text>
+          <text x="660" y="270" text-anchor="middle" font-size="22" font-weight="800" fill="#4fd1ff">Inteligencia artificial</text></g>
+        <g id="ppl" opacity="0"><text x="760" y="410" text-anchor="middle" font-size="64">👩‍💻🧑‍🔬👨‍💻</text>
+          <text x="760" y="450" text-anchor="middle" font-size="22" font-weight="800" fill="#5be38a">${level===1?'personas ayudando':'científicos y voluntarios'}</text></g>`;
+      await fadeIn(['ai'],500,alive);
+      const al=[...sceneG.querySelectorAll('.al')];
+      await itween(1600,t=>al.forEach((p,i)=>p.setAttribute('stroke-dashoffset',120*(1-Math.max(0,Math.min(1,t*2-i*.08))))),alive);
+      const er=[...sceneG.querySelectorAll('.er')];
+      await itween(500,t=>er.forEach(e=>e.setAttribute('opacity',t)),alive);
+      await iwait(500,alive); await fadeIn(['ppl'],600,alive); await iwait(300,alive);
+      for (const e of er){ if(!alive()) return; await iwait(350,alive); e.textContent='✓'; e.setAttribute('fill','#5be38a'); }
+    }},
+  { title:'¡El mapa completo del cerebro!',
+    text:{1:'¡Encontraron casi 140.000 neuronas! Todas conectadas, como una ciudad llena de calles.',
+          2:'Resultado: 139.255 neuronas y más de 50 millones de conexiones. Se publicó en 2024 en la revista científica <i>Nature</i>.',
+          3:'El conectoma completo: 139.255 neuronas, más de 50 millones de sinapsis y más de 8.000 tipos de células. Publicado en <i>Nature</i> (octubre de 2024).'},
+    async run(alive){
+      sceneG.innerHTML = `${brain(500,270,1.05)}<g transform="translate(500 270) scale(1.05)">${neuronPaths(320)}</g>
+        <g id="cnt" opacity="0"><rect x="250" y="440" width="500" height="80" rx="20" fill="#0d1630" stroke="#ffe14d" stroke-width="3"/>
+          <text id="nN" x="500" y="483" text-anchor="middle" font-size="36" font-weight="900" fill="#ffe14d">0</text>
+          <text id="nC" x="500" y="510" text-anchor="middle" font-size="19" fill="#a9b4d0"></text></g>`;
+      const np=[...sceneG.querySelectorAll('.np')];
+      await fadeIn(['cnt'],300,alive);
+      await itween(3000,t=>{ const k=Math.floor(np.length*t); for(let i=0;i<k;i++) np[i].setAttribute('opacity',.85);
+        el('nN').textContent = fmt(139255*t)+' neuronas'; },alive);
+      if(!alive()) return;
+      el('nC').textContent = level===1 ? '¡todas conectadas!' : 'y más de 50 millones de conexiones';
+    }},
+  { title:'¿Y cómo funciona por dentro?',
+    text:{1:'Ahora vamos a ver cómo una de esas neuronas salva a la mosca del matamoscas. ¡Atentos!',
+          2:'Con el mapa podemos seguir el camino de un mensaje: del ojo, al cerebro, a las patas. Veamos la neurona que salva a la mosca del matamoscas.',
+          3:'Con el conectoma se puede seguir un circuito completo. Veamos la vía de escape: neuronas LC4/LPLC2 → fibra gigante DNp01 → músculo TTM.'},
+    async run(alive){
+      sceneG.innerHTML = `${brain(500,250,.8)}<g transform="translate(500 250) scale(.8)">${neuronPaths(120)}</g>
+        <path id="gf" d="M440,230 C470,215 500,215 520,240 C540,270 520,330 525,420" stroke="#ffe14d" stroke-width="9" fill="none" stroke-linecap="round" filter="url(#glow2)" stroke-dasharray="400" stroke-dashoffset="400"/>
+        <g id="gfl" opacity="0"><rect x="560" y="390" width="250" height="44" rx="12" fill="#ffe14d"/>
+          <text x="685" y="420" text-anchor="middle" font-size="22" font-weight="900" fill="#0f1a33">⚡ Neurona gigante</text></g>`;
+      sceneG.querySelectorAll('.np').forEach(p=>p.setAttribute('opacity',.35));
+      await itween(1500,t=>el('gf').setAttribute('stroke-dashoffset',400*(1-t)),alive);
+      await fadeIn(['gfl'],500,alive);
+    }}
+];
+
+function linksFor(i){
+  const L = [];
+  if (i===1) L.push(['📰 Ver la noticia en la página de Princeton', URLS.princeton, 'main']);
+  if (i===4) { L.push(['🌐 Ver el cerebro real en FlyWire Codex', URLS.codex, 'main']); L.push(['📰 Noticia de Princeton (imágenes)', URLS.princeton, '']); }
+  if (i===5) { L.push(['🔍 Ver la neurona gigante real (DNp01)', URLS.dnp01, 'main']); L.push(['🌐 flywire.ai', URLS.flywire, '']); }
+  return L.map(([t,u,c]) => `<a class="${c}" href="${u}" target="_blank" rel="noopener">${t}</a>`).join('');
+}
+
+function showScene(i){
+  sc = Math.max(0, Math.min(INTRO.length-1, i)); const id = ++irun; const alive = () => id===irun;
+  const S = INTRO[sc];
+  $('#iTitle').textContent = S.title; $('#iNum').textContent = sc+1;
+  $('#iText').innerHTML = S.text[level]; $('#iCount').textContent = `Escena ${sc+1} de ${INTRO.length}`;
+  $('#iLinks').innerHTML = linksFor(sc);
+  $('#iPrev').disabled = sc===0;
+  $('#iNext').textContent = sc===INTRO.length-1 ? '⚡ Ver la animación ▶' : 'Siguiente ▶';
+  S.run(alive);
+}
+function setView(intro){
+  $('#introView').hidden = !intro; $('#animView').hidden = intro;
+  $('#tabIntro').classList.toggle('on', intro); $('#tabAnim').classList.toggle('on', !intro);
+  if (intro) showScene(sc); else { irun++; applyLevel(); resetScene(); }
+}
+$('#iPrev').onclick = () => showScene(sc-1);
+$('#iNext').onclick = () => sc===INTRO.length-1 ? setView(false) : showScene(sc+1);
+$('#iAgain').onclick = () => showScene(sc);
+$('#tabIntro').onclick = () => setView(true);
+$('#tabAnim').onclick = () => setView(false);
+document.querySelectorAll('#levels button').forEach(b => b.addEventListener('click', () => { if (!$('#introView').hidden) showScene(sc); }));
+showScene(0);
+
+// Modo sin conexión (solo cuando se abre desde un sitio web https)
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  try { navigator.serviceWorker.register('sw.js'); } catch(e) {}
+}
+</script>
+</body>
+</html>
