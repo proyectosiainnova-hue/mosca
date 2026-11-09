@@ -85,6 +85,7 @@
   #zSay{flex:none;width:52px;height:52px;border-radius:50%;border:0;background:#ffd54a;font-size:24px;cursor:pointer}
   .zask{margin-top:8px;background:#2a2350;border:2px dashed #b388ff;border-radius:14px;padding:8px 14px;font-size:18px;color:#e6dcff}
   .zask:empty{display:none}
+  .zprof{margin-top:4px;font-size:15px;color:#ffd54a;opacity:.9}
   .zbob{animation:zbob 1.6s ease-in-out infinite}
   @keyframes zbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
   .zwings{transform-box:fill-box;transform-origin:50% 100%;animation:zflap .09s linear infinite alternate}
@@ -895,14 +896,15 @@ function on(el, fn){ if(!el) return; el.addEventListener('pointerdown', e => { e
 let zSvgHandler = null;
 $('#zsvg').addEventListener('pointerdown', e => { if (zSvgHandler){ e.preventDefault(); zaudio(); zSvgHandler(e); } });
 function onSvg(fn){ zSvgHandler = fn; }
-function zsay(text, ask){ $('#zText').innerHTML = text; $('#zAsk').innerHTML = ask ? '💬 <b>Pregunta para la clase:</b> '+ask : ''; zspeak(text); }
+function zsay(text, ask, prof){ $('#zText').innerHTML = text; if (ask!==undefined){ $('#zAsk').innerHTML = (ask ? '🙌 <b>La clase:</b> '+ask : '') + (prof ? '<div class="zprof">👆 Profe: '+prof+'</div>' : ''); } zspeak(text); }
 
 // ---------- escenas ----------
 const ZS = [
  // ===== CAPÍTULO 1 =====
  { cap:1, title:'¡Hola! Soy Zumbi',
-   text:'¡Hola! Soy Zumbi, una mosquita de la fruta. Vivo cerca de las frutas maduras. ¡Tócame para saludarme!',
-   ask:'¿Alguna vez han visto una mosquita cerca de la fruta?',
+   text:'¡Hola! Soy Zumbi, una mosquita de la fruta. Vivo cerca de las frutas maduras. ¡Salúdenme todos con la mano!',
+   ask:'Todos saludan a Zumbi con la mano. ¿Alguna vez han visto una mosquita cerca de la fruta?',
+   prof:'Cuando saluden, toca a Zumbi y ella les responde.',
    run(alive){
      ZG.innerHTML = zapple(330,390,1.1) + zfly('z',620,260,1.3) + '<g id="bub"></g>';
      const z = zq('#z');
@@ -910,8 +912,9 @@ const ZS = [
        await ztween(500, t => zmove(z,620,260-Math.sin(Math.PI*t)*60,1.3,Math.sin(t*Math.PI*4)*8), alive); });
    }},
  { cap:1, title:'Juego: ¡Atrápame!',
-   text:'¡Vamos a jugar! Trata de atraparme: toca a Zumbi con el dedo.',
-   ask:'¿Quién cree que puede atrapar a Zumbi? ¡Pasen de a uno!',
+   text:'¡Vamos a jugar! Su profe va a tratar de atraparme. ¡Cuenten en voz alta cada intento!',
+   ask:'Todos cuentan los intentos en voz alta: ¡uno, dos, tres! También pueden hacer como si atraparan una mosca con las manos.',
+   prof:'Toca a Zumbi para intentar atraparla. Al sexto intento ella habla.',
    run(alive){
      ZG.innerHTML = zfly('z',500,280,1) + `<text id="cnt" x="40" y="535" font-size="30" font-weight="900" fill="#17305e">Intentos: 0</text><g id="bub"></g>`;
      const z = zq('#z'); let x=500,y=280,n=0,busy=false;
@@ -925,12 +928,13 @@ const ZS = [
        await ztween(180, t => { x=ox+(nx-ox)*t; y=oy+(ny-oy)*t; zmove(z,x,y,1); }, alive);
        busy = false;
        if (n===6 && alive()){ zchime(); zq('#bub').innerHTML = zbubble(500,110,'¡Soy muy rápida! ¿Sabes por qué?',470);
-         zsay('¡Nadie me pudo atrapar! Soy muy rápida. ¿Quieres saber por qué? Toca Siguiente.'); }
+         zsay('¡Nadie me pudo atrapar! Soy muy rápida. ¿Quieren saber por qué?'); }
      });
    }},
  { cap:1, title:'Mi cerebro chiquito',
-   text:'Dentro de mi cabeza tengo un cerebro. ¡Es más pequeño que la punta de un lápiz! Toca mi cabeza para verlo.',
-   ask:'¿Dónde está su cerebro? ¡Señálenlo!',
+   text:'Dentro de mi cabeza tengo un cerebro. ¡Es más pequeño que la punta de un lápiz! ¿Dónde está el cerebro de ustedes? ¡Señálenlo!',
+   ask:'Todos se señalan la cabeza. Muestren un lápiz y miren qué tan pequeña es su punta.',
+   prof:'Toca la cabeza de Zumbi para mostrar la lupa.',
    run(alive){
      ZG.innerHTML = zfly('z',260,290,1.5) +
        `<g id="lens" opacity="0"><line x1="330" y1="230" x2="520" y2="170" stroke="#17305e" stroke-width="4" stroke-dasharray="10 8"/>
@@ -945,8 +949,9 @@ const ZS = [
        await ztween(500, t => zq('#pencil').setAttribute('opacity',t), alive); });
    }},
  { cap:1, title:'Mis mensajeros',
-   text:'En mi cerebro viven muchos mensajeros. Se pasan mensajes súper rápido, como una carrera de relevos. ¡Toca un mensajero!',
-   ask:'¿Cómo se pasan un mensaje ustedes en el salón?',
+   text:'En mi cerebro viven muchos mensajeros. Se pasan mensajes súper rápido, como una carrera de relevos. ¡Hagamos lo mismo!',
+   ask:'Relevo de aplausos: el primero de la fila aplaude, luego el siguiente, y así hasta el último. ¡Cada vez más rápido!',
+   prof:'Toca un mensajero cada vez que hagan el relevo. Al segundo toque aparece el número de mensajeros.',
    run(alive){
      let html = zbrain(500,290,1.25);
      const pts=[]; for(let i=0;i<9;i++){ const a=i/9; pts.push([240+a*520, 290+Math.sin(a*Math.PI*2)*60]); }
@@ -968,8 +973,9 @@ const ZS = [
        busy=false; }));
    }},
  { cap:1, title:'Veo, pienso y salto',
-   text:'Mis ojos VEN, mi cerebro PIENSA y mis patas SALTAN. Toca mis ojos, luego mi cerebro y luego mis patas.',
-   ask:'¿Qué hacen sus ojos? ¿Y sus piernas?',
+   text:'Mis ojos VEN, mi cerebro PIENSA y mis patas SALTAN. ¡Háganlo conmigo!',
+   ask:'Todos se tocan los ojos y dicen ¡VEO!, se tocan la cabeza y dicen ¡PIENSO!, y dan un saltito diciendo ¡SALTO!',
+   prof:'Toca en Zumbi los ojos, luego la cabeza y luego las patas, al ritmo de la clase.',
    run(alive){
      const X=500,Y=290,S=1.9;
      ZG.innerHTML = zfly('z',X,Y,S) +
@@ -981,7 +987,7 @@ const ZS = [
      let step=0;
      ZG.querySelectorAll('.hot').forEach(h => on(h, async () => {
        const k=+h.dataset.k;
-       if (k!==step){ zoops(); zsay(step===0?'¡Primero los ojos! Toca mis ojos.':step===1?'Ahora toca mi cerebro, arriba de mi cabeza.':'Ahora toca mis patas.'); return; }
+       if (k!==step){ zoops(); zsay(step===0?'¡Primero los ojos!':step===1?'Ahora el cerebro, arriba de la cabeza.':'Ahora las patas.'); return; }
        zpop(); zq('#b'+k).innerHTML = zbubble(lab[k][1],lab[k][2],lab[k][0],340); step++;
        if (step===3){ zchime();
          await ztween(700, t => zmove(zq('#z'),X,Y-Math.sin(Math.PI*t)*120,S), alive);
@@ -989,8 +995,9 @@ const ZS = [
      }));
    }},
  { cap:1, title:'Juego: ¡Salva a Zumbi!',
-   text:'¡Viene el matamoscas! Ayuda al mensaje: toca OJO, CEREBRO y PATAS, en ese orden, antes de que llegue.',
-   ask:'¡Pasen de a uno! El salón cuenta en voz alta: ¡uno, dos, tres!',
+   text:'¡Viene el matamoscas! Para salvarme, griten todos juntos: ¡OJO! ¡CEREBRO! ¡PATAS!',
+   ask:'Gritan juntos OJO, CEREBRO, PATAS mientras se tocan los ojos, la cabeza y las piernas.',
+   prof:'Toca OJO, CEREBRO y PATAS a medida que la clase los grita. Con «Otra vez» se repite.',
    run(alive){
      ZG.innerHTML = zfly('z',720,250,1.3) +
        `<g id="sw"><line x1="0" y1="80" x2="-40" y2="300" stroke="#8d2a1f" stroke-width="16" stroke-linecap="round"/>
@@ -1002,13 +1009,13 @@ const ZS = [
      const play = async () => {
        step=0; over=false; zq('#msg').innerHTML=''; zq('#again').innerHTML=''; zmove(z,720,250,1.3); z.style.opacity=1;
        ['k0','k1','k2'].forEach(k=>zq('#'+k+' rect').setAttribute('stroke','#fff'));
-       await ztween(9000, t => { if(over) return; const e=t; sw.setAttribute('transform',`translate(${90+e*470} ${230+Math.sin(t*20)*6}) scale(${.6+e*.5})`);
+       await ztween(14000, t => { if(over) return; const e=t; sw.setAttribute('transform',`translate(${90+e*470} ${230+Math.sin(t*20)*6}) scale(${.6+e*.5})`);
          if (t>=1 && !over){ over=true; fail(); } }, alive);
      };
-     const win = async () => { over=true; zchime(); zq('#msg').innerHTML = zbubble(500,110,'¡La salvaste! 🎉',330);
+     const win = async () => { over=true; zchime(); zq('#msg').innerHTML = zbubble(500,110,'¡La salvaron! 🎉',330);
        const fly = ztween(1000, t => zmove(z,720+t*300,250-t*260,1.3,-20*t), alive);
        const hit = ztween(300, t => sw.setAttribute('transform',`translate(${560+t*120} ${250}) scale(1.1)`), alive);
-       await Promise.all([fly,hit]); zconfetti(alive); zsay('¡Lo lograste! El mensaje llegó rapidísimo y Zumbi se escapó. ¿Quién más quiere jugar?');
+       await Promise.all([fly,hit]); zconfetti(alive); zsay('¡Lo lograron entre todos! El mensaje llegó rapidísimo y me escapé. ¿Lo hacemos otra vez?');
        zq('#again').innerHTML = zbtn('ag',800,30,180,60,'🔁 Otra vez','#b388ff','#fff',24); on(zq('#ag'), play); };
      const fail = async () => { zoops(); zq('#msg').innerHTML = zbubble(500,110,'¡Uy! Zumbi se asustó y voló solita',520);
        await ztween(800, t => zmove(z,720+t*300,250-t*260,1.3), alive);
@@ -1024,8 +1031,9 @@ const ZS = [
    }},
  // ===== CAPÍTULO 2 =====
  { cap:2, title:'Los científicos',
-   text:'Unos científicos querían saber cómo funciona mi cerebro. Le tomaron muchísimas fotos con un microscopio súper potente. ¡Toca el microscopio!',
-   ask:'¿Saben qué es un científico? ¿Qué hace?',
+   text:'Unos científicos querían saber cómo funciona mi cerebro. Le tomaron muchísimas fotos con un microscopio súper potente. ¡Hagan como fotógrafos!',
+   ask:'Todos hacen una cámara con las manos y dicen ¡CLIC! ¿Saben qué hace un científico?',
+   prof:'Toca el microscopio con cada ¡CLIC! de la clase.',
    run(alive){
      ZG.innerHTML = `<text x="200" y="330" font-size="150" text-anchor="middle">👩‍🔬</text><text x="380" y="330" font-size="150" text-anchor="middle">👨‍🔬</text>
        <g id="mic" class="zbtn"><circle cx="640" cy="300" r="95" fill="#fff" opacity=".6"/><text x="640" y="350" font-size="140" text-anchor="middle">🔬</text></g>
@@ -1039,8 +1047,9 @@ const ZS = [
        zq('#cnt').textContent = n<4 ? '📸 ¡Clic!' : '📸 ¡Millones de fotos!'; });
    }},
  { cap:2, title:'El mapa de mi cerebro',
-   text:'Con las fotos dibujaron un mapa de mi cerebro, ¡lleno de caminitos de colores! Toca el cerebro para ayudar a dibujarlo.',
-   ask:'¿Para qué sirve un mapa?',
+   text:'Con las fotos dibujaron un mapa de mi cerebro, ¡lleno de caminitos de colores! Ayúdenme a contar los caminitos.',
+   ask:'Todos cuentan en voz alta del 1 al 10 y dibujan caminitos en el aire con el dedo. ¿Para qué sirve un mapa?',
+   prof:'Toca el cerebro con cada número. Al 10 se completa el mapa.',
    run(alive){
      ZG.innerHTML = zbrain(500,290,1.25) + '<g id="roads"></g><text id="cnt" x="500" y="535" text-anchor="middle" font-size="28" font-weight="900" fill="#17305e"></text>';
      const cols=['#4fd1ff','#ff6b9a','#ffd54a','#5be38a','#b388ff','#ff9f43']; let n=0;
@@ -1055,8 +1064,9 @@ const ZS = [
        else if (n<10) zq('#cnt').textContent = 'Caminitos: '+n+' de 10'; });
    }},
  { cap:2, title:'Juego: ¿Qué hace cada parte?',
-   text:'Une cada parte de mi cuerpo con lo que hace. Toca una parte y después lo que hace.',
-   ask:'¿Qué parte de su cuerpo usan para ver? ¿Y para pensar?',
+   text:'¿Qué hace cada parte de mi cuerpo? ¡Ayúdenme a unirlas!',
+   ask:'Pregunta una por una: «¿Para qué sirven los ojos?» Levantan la mano y responden. ¿Qué parte de su cuerpo usan para pensar?',
+   prof:'Toca la parte de la izquierda y luego la respuesta que diga la clase.',
    run(alive){
      const L=[['👁️','Ojos','ver'],['🧠','Cerebro','pensar'],['🦵','Patas','saltar'],['wing','Alas','volar']];
      const R=[['☁️','Volar','volar'],['👀','Ver','ver'],['⬆️','Saltar','saltar'],['💭','Pensar','pensar']];
@@ -1080,8 +1090,9 @@ const ZS = [
      }));
    }},
  { cap:2, title:'¡Una mosca robot!',
-   text:'Los científicos también construyeron una mosca robot. ¡Se llama Robo-Zumbi! Ella también puede ver, pensar y moverse. ¡Tócala!',
-   ask:'¡Miren! En el salón tenemos una mosca robot de verdad. ¿Le acercamos la mano a ver qué hace?',
+   text:'Los científicos también construyeron una mosca robot. ¡Se llama Robo-Zumbi! Ella también puede ver, pensar y moverse.',
+   ask:'¡Miren! En el salón tenemos una mosca robot de verdad. ¿Qué pasará si le acercamos la mano?',
+   prof:'Toca a Robo-Zumbi para que salude. Buen momento para mostrar el robot real.',
    run(alive){
      ZG.innerHTML = zfly('z',300,280,1.3) + zfly('r',700,280,1.3,true) + '<g id="bub"></g>';
      on(zq('#r'), async () => { zbeep(); zq('#bub').innerHTML = zbubble(700,110,'¡Bip bup! Hola 🤖',300);
@@ -1089,8 +1100,9 @@ const ZS = [
      on(zq('#z'), () => { zbuzz(); zq('#bub').innerHTML = zbubble(300,110,'¡Es mi amiga robot!',320); });
    }},
  { cap:2, title:'Carrera de escape',
-   text:'¡Viene el matamoscas para las dos! Toca el botón y mira cómo escapan. Las dos ven, piensan y se mueven.',
-   ask:'¿Quién escapó primero? ¿Se parecen?',
+   text:'¡Viene el matamoscas para las dos! Cuenten conmigo: tres, dos, uno… ¡Matamoscas!',
+   ask:'Todos cuentan TRES, DOS, UNO en voz alta. Después: ¿quién escapó primero? ¿Se parecen?',
+   prof:'Toca el botón ¡Matamoscas! cuando la clase diga «uno».',
    run(alive){
      ZG.innerHTML = zfly('z',330,300,1.1) + zfly('r',700,300,1.1,true) +
        `<g id="s1"><rect x="-55" y="-70" width="110" height="140" rx="18" fill="#e74c3c" stroke="#fff" stroke-width="5"/></g>
@@ -1106,8 +1118,9 @@ const ZS = [
        zq('#bub').innerHTML = zbubble(500,110,'¡Las dos escaparon! 🎉',360); zchime(); busy=false; });
    }},
  { cap:2, title:'¡Exploradores de cerebros!',
-   text:'¡Felicitaciones! Ahora saben cómo funciona el cerebro de una mosca. ¡Son exploradores de cerebros! Toca la medalla.',
-   ask:'¿Qué fue lo que más les gustó de la historia de Zumbi?',
+   text:'¡Felicitaciones! Ahora saben cómo funciona el cerebro de una mosca. ¡Son exploradores de cerebros! ¡Un aplauso para todos!',
+   ask:'Gran aplauso. ¿Qué fue lo que más les gustó de la historia de Zumbi?',
+   prof:'Toca la medalla para lanzar el confeti.',
    run(alive){
      ZG.innerHTML = `<g id="med" class="zbtn"><path d="M440,90 L500,200 L560,90" fill="#4fd1ff" stroke="#17305e" stroke-width="4"/>
        <circle cx="500" cy="280" r="120" fill="#ffd54a" stroke="#c79100" stroke-width="10"/><circle cx="500" cy="280" r="92" fill="none" stroke="#fff3c4" stroke-width="5"/>
@@ -1128,7 +1141,7 @@ function zshow(i){
   const S = ZS[zsc];
   zSvgHandler = null;
   $('#zTitle').textContent = S.title;
-  zsay(S.text, S.ask);
+  zsay(S.text, S.ask, S.prof);
   $('#zPrev').disabled = zsc===0;
   $('#zNext').textContent = zsc===5 ? 'Capítulo 2 ▶' : (zsc===ZS.length-1 ? '🏁 Volver al inicio' : 'Siguiente ▶');
   zdots();
