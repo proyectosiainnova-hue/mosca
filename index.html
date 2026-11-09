@@ -74,6 +74,26 @@
     .controls button{padding:10px 14px;font-size:16px}
     .links{margin-top:8px}.links a{padding:9px 14px;font-size:16px}
   }
+  .zbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:8px}
+  .zbar button{border:2px solid #33437a;background:var(--panel);color:var(--muted);font-size:16px;font-weight:800;padding:8px 12px;border-radius:12px;cursor:pointer}
+  .zbar button.on{background:#ffd54a;color:#17305e;border-color:#ffd54a}
+  .zdots{display:flex;gap:6px;margin-left:auto}
+  .zdots span{width:14px;height:14px;border-radius:50%;background:#33437a;cursor:pointer}
+  .zdots span.on{background:#ffd54a}.zdots span.done{background:#5be38a}
+  #zsvg{max-height:calc(100vh - 380px);max-height:calc(100dvh - 380px);min-height:240px;touch-action:manipulation;user-select:none;-webkit-user-select:none}
+  .zcap #zText{font-size:clamp(20px,2.8vw,30px);line-height:1.3;font-weight:700}
+  #zSay{flex:none;width:52px;height:52px;border-radius:50%;border:0;background:#ffd54a;font-size:24px;cursor:pointer}
+  .zask{margin-top:8px;background:#2a2350;border:2px dashed #b388ff;border-radius:14px;padding:8px 14px;font-size:18px;color:#e6dcff}
+  .zask:empty{display:none}
+  .zbob{animation:zbob 1.6s ease-in-out infinite}
+  @keyframes zbob{0%,100%{transform:translateY(0)}50%{transform:translateY(-10px)}}
+  .zwings{transform-box:fill-box;transform-origin:50% 100%;animation:zflap .09s linear infinite alternate}
+  @keyframes zflap{from{transform:scaleY(1)}to{transform:scaleY(.55)}}
+  .zbtn{cursor:pointer}.zbtn rect{transition:transform .1s}
+  .zshake{animation:zshake .35s}
+  @keyframes zshake{0%,100%{transform:translateX(0)}25%{transform:translateX(-10px)}75%{transform:translateX(10px)}}
+  .zled{animation:zled 1.2s infinite}
+  @keyframes zled{0%,90%,100%{opacity:1}95%{opacity:.1}}
   /* SVG */
   .nerve{fill:none;stroke:var(--nerve);stroke-width:5;stroke-linecap:round;opacity:.45}
   .lit{fill:none;stroke:var(--lit);stroke-width:8;stroke-linecap:round;filter:url(#glow)}
@@ -111,11 +131,45 @@
   </header>
 
   <nav class="tabs">
-    <button id="tabIntro" class="on">📖 1. La historia</button>
+    <button id="tabZumbi" class="on">🪰 Zumbi (1º–2º)</button>
+    <button id="tabIntro">📖 1. La historia</button>
     <button id="tabAnim">⚡ 2. ¿Cómo escapa?</button>
   </nav>
 
-  <section id="introView">
+  <section id="zumbiView">
+    <div class="zbar">
+      <button id="zCap1" class="on">Capítulo 1 · El cerebro de Zumbi</button>
+      <button id="zCap2">Capítulo 2 · Científicos y mosca robot</button>
+      <div id="zDots" class="zdots"></div>
+    </div>
+    <div class="stage zstage">
+      <svg id="zsvg" viewBox="0 0 1000 560" aria-label="Cuento interactivo de Zumbi la mosca">
+        <defs>
+          <linearGradient id="zsky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9fdcff"/><stop offset="1" stop-color="#e4f6ff"/></linearGradient>
+        </defs>
+        <rect width="1000" height="560" fill="url(#zsky)"/>
+        <circle cx="900" cy="80" r="46" fill="#ffd54a"/>
+        <path d="M0,470 Q250,430 500,465 T1000,455 V560 H0Z" fill="#8fd16a"/>
+        <path d="M0,500 Q300,480 600,505 T1000,495 V560 H0Z" fill="#74bf52"/>
+        <text id="zTitle" x="500" y="52" text-anchor="middle" font-size="36" font-weight="900" fill="#17305e"></text>
+        <g id="zscene"></g>
+        <g id="zfx" pointer-events="none"></g>
+      </svg>
+    </div>
+    <div class="caption zcap">
+      <button id="zSay" aria-label="Escuchar">🔊</button>
+      <div id="zText"></div>
+    </div>
+    <div id="zAsk" class="zask"></div>
+    <div class="controls">
+      <button class="toggle" id="zPrev">◀ Anterior</button>
+      <button class="go" id="zNext">Siguiente ▶</button>
+      <button class="toggle" id="zAgain">↺ Repetir</button>
+      <button class="toggle on" id="zVoice">🗣️ Voz: SÍ</button>
+    </div>
+  </section>
+
+  <section id="introView" hidden>
     <div class="stage">
       <svg id="isvg" viewBox="0 0 1000 540" aria-label="Historia del proyecto FlyWire">
         <defs>
@@ -714,18 +768,394 @@ function showScene(i){
   $('#iNext').textContent = sc===INTRO.length-1 ? '⚡ Ver la animación ▶' : 'Siguiente ▶';
   S.run(alive);
 }
-function setView(intro){
-  $('#introView').hidden = !intro; $('#animView').hidden = intro;
-  $('#tabIntro').classList.toggle('on', intro); $('#tabAnim').classList.toggle('on', !intro);
-  if (intro) showScene(sc); else { irun++; applyLevel(); resetScene(); }
+let curView = 'zumbi';
+function setView(v){
+  if (v===true) v='intro'; if (v===false) v='anim'; curView = v;
+  $('#zumbiView').hidden = v!=='zumbi'; $('#introView').hidden = v!=='intro'; $('#animView').hidden = v!=='anim';
+  $('#tabZumbi').classList.toggle('on', v==='zumbi'); $('#tabIntro').classList.toggle('on', v==='intro'); $('#tabAnim').classList.toggle('on', v==='anim');
+  if (v!=='zumbi'){ zrun++; zstopVoice(); }
+  if (v==='intro') showScene(sc);
+  else if (v==='anim'){ irun++; applyLevel(); resetScene(); }
+  else { irun++; zshow(zsc); }
 }
 $('#iPrev').onclick = () => showScene(sc-1);
 $('#iNext').onclick = () => sc===INTRO.length-1 ? setView(false) : showScene(sc+1);
 $('#iAgain').onclick = () => showScene(sc);
-$('#tabIntro').onclick = () => setView(true);
-$('#tabAnim').onclick = () => setView(false);
-document.querySelectorAll('#levels button').forEach(b => b.addEventListener('click', () => { if (!$('#introView').hidden) showScene(sc); }));
-showScene(0);
+$('#tabIntro').onclick = () => setView('intro');
+$('#tabAnim').onclick = () => setView('anim');
+$('#tabZumbi').onclick = () => setView('zumbi');
+document.querySelectorAll('#levels button').forEach(b => b.addEventListener('click', () => {
+  if (level===1) setView('zumbi');
+  else if (curView==='zumbi') setView('intro');
+  else if (curView==='intro') showScene(sc);
+}));
+
+// =================== ZUMBI (1º–2º) ===================
+const ZG = $('#zscene'), ZFX = $('#zfx');
+let zsc = 0, zrun = 0, zVoiceOn = true, zUnlocked = false, zDone = new Set();
+const zalive = id => () => id === zrun;
+function ztween(ms, fn, alive){
+  return new Promise(res => { const t0 = performance.now();
+    (function f(now){ if(!alive()) return res(); const t=Math.min(1,(now-t0)/ms); fn(t); t<1?requestAnimationFrame(f):res(); })(t0); });
+}
+const zwait = (ms, alive) => ztween(ms, ()=>{}, alive);
+const zease = t => t<.5 ? 2*t*t : 1-Math.pow(-2*t+2,2)/2;
+const zq = sel => ZG.querySelector(sel);
+function svgPt(evt){ const pt = $('#zsvg').createSVGPoint(); pt.x = evt.clientX; pt.y = evt.clientY;
+  return pt.matrixTransform($('#zsvg').getScreenCTM().inverse()); }
+
+// ---------- sonidos ----------
+let zac = null;
+function zaudio(){ try{ zac = zac || new (window.AudioContext||window.webkitAudioContext)(); if (zac.resume) zac.resume(); }catch(e){} return zac; }
+function znote(freq, dur, type='sine', vol=.12, when=0, slide=0){
+  const a = zaudio(); if(!a) return;
+  try{ const o=a.createOscillator(), g=a.createGain(), t=a.currentTime+when;
+    o.type=type; o.frequency.setValueAtTime(freq,t); if(slide) o.frequency.linearRampToValueAtTime(slide,t+dur);
+    g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(.0001,t+dur);
+    o.connect(g); g.connect(a.destination); o.start(t); o.stop(t+dur+.02); }catch(e){}
+}
+const zbuzz  = () => { for(let i=0;i<6;i++) znote(200+(i%2)*40,.09,'sawtooth',.05,i*.07); };
+const zpop   = () => znote(600,.12,'sine',.15,0,1100);
+const zwhoosh= () => znote(900,.25,'triangle',.08,0,200);
+const zchime = () => { znote(784,.25,'sine',.12); znote(1047,.35,'sine',.12,.15); znote(1319,.45,'sine',.1,.3); };
+const zoops  = () => { znote(330,.18,'square',.06); znote(247,.25,'square',.06,.15); };
+const zbeep  = () => { znote(880,.1,'square',.07); znote(1175,.12,'square',.07,.13); };
+
+// ---------- voz ----------
+function zspeak(text){
+  try{
+    if (!zVoiceOn || !zUnlocked || !window.speechSynthesis) return;
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text.replace(/<[^>]+>/g,'').replace(/[^\p{L}\p{N}\s.,;:¡!¿?'"()\-–]/gu,''));
+    const vs = speechSynthesis.getVoices();
+    const v = vs.find(v=>/es[-_](CO|MX|US|419)/i.test(v.lang)) || vs.find(v=>/^es/i.test(v.lang));
+    if (v) u.voice = v; u.lang = v ? v.lang : 'es-ES'; u.rate = .92; u.pitch = 1.15;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
+function zstopVoice(){ try{ window.speechSynthesis && speechSynthesis.cancel(); }catch(e){} }
+
+// ---------- dibujos ----------
+function zumbiSVG(robot=false){
+  const body = robot ? '#aab7c9' : '#7a5c43', line = robot ? '#4a5568' : '#3b2a1e';
+  const eyes = robot
+    ? `<rect x="-58" y="-32" width="44" height="34" rx="10" fill="#0b1530"/><rect class="zled" x="-50" y="-25" width="28" height="20" rx="6" fill="#4fd1ff"/>
+       <rect x="14" y="-32" width="44" height="34" rx="10" fill="#0b1530"/><rect class="zled" x="22" y="-25" width="28" height="20" rx="6" fill="#4fd1ff"/>`
+    : `<circle cx="-30" cy="-12" r="27" fill="#d93636" stroke="#8a1c1c" stroke-width="3"/><circle cx="-26" cy="-9" r="11" fill="#2a0a0a"/><circle cx="-34" cy="-20" r="6" fill="#fff"/>
+       <circle cx="30" cy="-12" r="27" fill="#d93636" stroke="#8a1c1c" stroke-width="3"/><circle cx="26" cy="-9" r="11" fill="#2a0a0a"/><circle cx="22" cy="-20" r="6" fill="#fff"/>`;
+  const extra = robot
+    ? `<line x1="0" y1="-46" x2="0" y2="-82" stroke="${line}" stroke-width="5"/><circle class="zled" cx="0" cy="-88" r="9" fill="#ff5252"/>
+       <circle cx="-50" cy="38" r="4" fill="${line}"/><circle cx="50" cy="38" r="4" fill="${line}"/>
+       <rect x="-18" y="26" width="36" height="12" rx="4" fill="#0b1530"/><path d="M-12,32 H12" stroke="#4fd1ff" stroke-width="3"/>`
+    : `<path d="M-14,-44 Q-26,-72 -38,-76 M14,-44 Q26,-72 38,-76" stroke="${line}" stroke-width="4" fill="none"/>
+       <circle cx="-39" cy="-77" r="5" fill="${line}"/><circle cx="39" cy="-77" r="5" fill="${line}"/>
+       <ellipse cx="-52" cy="22" rx="11" ry="7" fill="#ff9aa8" opacity=".8"/><ellipse cx="52" cy="22" rx="11" ry="7" fill="#ff9aa8" opacity=".8"/>
+       <path d="M-16,28 Q0,44 16,28" stroke="#2a1a10" stroke-width="4" fill="none" stroke-linecap="round"/>`;
+  return `<g class="zbob">
+    <g class="zwings">
+      <ellipse cx="-38" cy="-66" rx="34" ry="58" transform="rotate(-28 -38 -66)" fill="rgba(225,245,255,.8)" stroke="#6fb3e0" stroke-width="3"/>
+      <ellipse cx="38" cy="-66" rx="34" ry="58" transform="rotate(28 38 -66)" fill="rgba(225,245,255,.8)" stroke="#6fb3e0" stroke-width="3"/>
+    </g>
+    <g stroke="${line}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round" fill="none" class="zlegs">
+      <path d="M-42,45 L-62,80 L-74,80"/><path d="M-14,58 L-20,94 L-32,96"/><path d="M14,58 L20,94 L32,96"/><path d="M42,45 L62,80 L74,80"/>
+    </g>
+    <ellipse cx="0" cy="10" rx="74" ry="60" fill="${body}" stroke="${line}" stroke-width="4"/>
+    <ellipse cx="0" cy="32" rx="44" ry="24" fill="#fff" opacity=".13"/>
+    ${extra}${eyes}
+  </g>`;
+}
+function zfly(id, x, y, s=1, robot=false){ return `<g id="${id}" transform="translate(${x} ${y}) scale(${s})">${zumbiSVG(robot)}</g>`; }
+function zmove(el, x, y, s=1, r=0){ el.setAttribute('transform', `translate(${x} ${y}) scale(${s}) rotate(${r})`); }
+function zbtn(id, x, y, w, h, label, fill='#ff6b5a', color='#fff', fs=28){
+  return `<g id="${id}" class="zbtn"><rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h/2}" fill="${fill}" stroke="#fff" stroke-width="4"/>
+    <text x="${x+w/2}" y="${y+h/2+fs*.36}" text-anchor="middle" font-size="${fs}" font-weight="900" fill="${color}">${label}</text></g>`;
+}
+function zbubble(x, y, text, w){ w = w || text.length*15+40;
+  return `<g class="zbub"><rect x="${x-w/2}" y="${y-34}" width="${w}" height="54" rx="20" fill="#fff" stroke="#17305e" stroke-width="3"/>
+    <text x="${x}" y="${y+2}" text-anchor="middle" font-size="26" font-weight="800" fill="#17305e">${text}</text></g>`; }
+function zapple(x,y,s=1){ return `<g transform="translate(${x} ${y}) scale(${s})">
+  <circle cx="0" cy="0" r="70" fill="#e53935" stroke="#9c1f1c" stroke-width="4"/><circle cx="-25" cy="-25" r="14" fill="#fff" opacity=".35"/>
+  <path d="M0,-66 Q4,-90 12,-100" stroke="#5d3a1a" stroke-width="7" fill="none" stroke-linecap="round"/>
+  <path d="M10,-86 Q45,-110 60,-80 Q30,-70 10,-86Z" fill="#43a047"/></g>`; }
+function zbrain(x,y,s=1){ return `<g transform="translate(${x} ${y}) scale(${s})">
+  <ellipse cx="-150" cy="0" rx="70" ry="92" fill="#ffd1e0" stroke="#e57ea2" stroke-width="5"/>
+  <ellipse cx="150" cy="0" rx="70" ry="92" fill="#ffd1e0" stroke="#e57ea2" stroke-width="5"/>
+  <ellipse cx="0" cy="0" rx="112" ry="80" fill="#ffc0d6" stroke="#e57ea2" stroke-width="5"/></g>`; }
+function zconfetti(alive){
+  const cols=['#ff6b5a','#ffd54a','#5be38a','#4fd1ff','#b388ff','#ff9aa8'];
+  let html=''; const P=[];
+  for(let i=0;i<70;i++){ const p={x:Math.random()*1000,y:-20-Math.random()*200,v:180+Math.random()*260,r:Math.random()*360,c:cols[i%6]}; P.push(p);
+    html+=`<rect class="cf" width="14" height="8" fill="${p.c}"/>`; }
+  ZFX.innerHTML = html; const els=[...ZFX.children];
+  return ztween(2600, t => els.forEach((e,i)=>{ const p=P[i];
+    e.setAttribute('transform',`translate(${p.x+Math.sin(t*6+i)*20} ${p.y+p.v*t*3}) rotate(${p.r+t*500})`); }), alive)
+    .then(()=>{ ZFX.innerHTML=''; });
+}
+function on(el, fn){ if(!el) return; el.addEventListener('pointerdown', e => { e.preventDefault(); zaudio(); fn(e); }); }
+let zSvgHandler = null;
+$('#zsvg').addEventListener('pointerdown', e => { if (zSvgHandler){ e.preventDefault(); zaudio(); zSvgHandler(e); } });
+function onSvg(fn){ zSvgHandler = fn; }
+function zsay(text, ask){ $('#zText').innerHTML = text; $('#zAsk').innerHTML = ask ? '💬 <b>Pregunta para la clase:</b> '+ask : ''; zspeak(text); }
+
+// ---------- escenas ----------
+const ZS = [
+ // ===== CAPÍTULO 1 =====
+ { cap:1, title:'¡Hola! Soy Zumbi',
+   text:'¡Hola! Soy Zumbi, una mosquita de la fruta. Vivo cerca de las frutas maduras. ¡Tócame para saludarme!',
+   ask:'¿Alguna vez han visto una mosquita cerca de la fruta?',
+   run(alive){
+     ZG.innerHTML = zapple(330,390,1.1) + zfly('z',620,260,1.3) + '<g id="bub"></g>';
+     const z = zq('#z');
+     on(z, async () => { zbuzz(); zq('#bub').innerHTML = zbubble(620,105,'¡Hola, amigos! 👋',280);
+       await ztween(500, t => zmove(z,620,260-Math.sin(Math.PI*t)*60,1.3,Math.sin(t*Math.PI*4)*8), alive); });
+   }},
+ { cap:1, title:'Juego: ¡Atrápame!',
+   text:'¡Vamos a jugar! Trata de atraparme: toca a Zumbi con el dedo.',
+   ask:'¿Quién cree que puede atrapar a Zumbi? ¡Pasen de a uno!',
+   run(alive){
+     ZG.innerHTML = zfly('z',500,280,1) + `<text id="cnt" x="40" y="535" font-size="30" font-weight="900" fill="#17305e">Intentos: 0</text><g id="bub"></g>`;
+     const z = zq('#z'); let x=500,y=280,n=0,busy=false;
+     (async()=>{ while(alive()){ const nx=150+Math.random()*700, ny=150+Math.random()*250, ox=x, oy=y;
+         await ztween(1800, t=>{ if(busy) return; const e=zease(t); x=ox+(nx-ox)*e; y=oy+(ny-oy)*e; zmove(z,x,y,1); }, alive); } })();
+     onSvg(async e => {
+       if (busy) return; const p = svgPt(e);
+       if (Math.hypot(p.x-x,p.y-y) > 170) return;
+       busy = true; n++; zwhoosh(); zq('#cnt').textContent = 'Intentos: '+n;
+       const nx = x<500 ? 650+Math.random()*250 : 100+Math.random()*250, ny = 120+Math.random()*260, ox=x, oy=y;
+       await ztween(180, t => { x=ox+(nx-ox)*t; y=oy+(ny-oy)*t; zmove(z,x,y,1); }, alive);
+       busy = false;
+       if (n===6 && alive()){ zchime(); zq('#bub').innerHTML = zbubble(500,110,'¡Soy muy rápida! ¿Sabes por qué?',470);
+         zsay('¡Nadie me pudo atrapar! Soy muy rápida. ¿Quieres saber por qué? Toca Siguiente.'); }
+     });
+   }},
+ { cap:1, title:'Mi cerebro chiquito',
+   text:'Dentro de mi cabeza tengo un cerebro. ¡Es más pequeño que la punta de un lápiz! Toca mi cabeza para verlo.',
+   ask:'¿Dónde está su cerebro? ¡Señálenlo!',
+   run(alive){
+     ZG.innerHTML = zfly('z',260,290,1.5) +
+       `<g id="lens" opacity="0"><line x1="330" y1="230" x2="520" y2="170" stroke="#17305e" stroke-width="4" stroke-dasharray="10 8"/>
+        <circle cx="720" cy="270" r="190" fill="#fff" stroke="#17305e" stroke-width="10"/>${zbrain(720,260,.62)}
+        <text x="720" y="415" text-anchor="middle" font-size="28" font-weight="900" fill="#c2185b">mi cerebro</text>
+        <line x1="845" y1="420" x2="905" y2="490" stroke="#17305e" stroke-width="22" stroke-linecap="round"/></g>
+        <g id="pencil" opacity="0"><rect x="600" y="478" width="330" height="44" fill="#ffd54a" stroke="#8a6d00" stroke-width="3"/>
+        <polygon points="600,478 548,500 600,522" fill="#f2c79a" stroke="#8a6d00" stroke-width="3"/><polygon points="566,492 548,500 566,508" fill="#333"/>
+        <text x="765" y="510" text-anchor="middle" font-size="24" font-weight="900" fill="#5a4500">¡más pequeño que la puntita!</text></g>`;
+     on(zq('#z'), async () => { zpop();
+       await ztween(600, t => { zq('#lens').setAttribute('opacity',t); }, alive);
+       await ztween(500, t => zq('#pencil').setAttribute('opacity',t), alive); });
+   }},
+ { cap:1, title:'Mis mensajeros',
+   text:'En mi cerebro viven muchos mensajeros. Se pasan mensajes súper rápido, como una carrera de relevos. ¡Toca un mensajero!',
+   ask:'¿Cómo se pasan un mensaje ustedes en el salón?',
+   run(alive){
+     let html = zbrain(500,290,1.25);
+     const pts=[]; for(let i=0;i<9;i++){ const a=i/9; pts.push([240+a*520, 290+Math.sin(a*Math.PI*2)*60]); }
+     html += `<path id="chain" d="M${pts.map(p=>p.join(',')).join(' L')}" stroke="#e57ea2" stroke-width="6" fill="none" stroke-dasharray="4 10"/>`;
+     pts.forEach((p,i)=> html += `<g class="msg" data-i="${i}" transform="translate(${p[0]} ${p[1]})"><circle r="24" fill="#fff59d" stroke="#f9a825" stroke-width="4"/>
+        <circle cx="-8" cy="-4" r="4" fill="#333"/><circle cx="8" cy="-4" r="4" fill="#333"/><path d="M-8,8 Q0,15 8,8" stroke="#333" stroke-width="3" fill="none"/></g>`);
+     html += `<g id="many"></g><text id="cnt" x="500" y="540" text-anchor="middle" font-size="28" font-weight="900" fill="#17305e"></text>`;
+     ZG.innerHTML = html;
+     const ms=[...ZG.querySelectorAll('.msg')]; let busy=false, taps=0;
+     ms.forEach(m => on(m, async () => { if(busy) return; busy=true; taps++;
+       for (let i=0;i<ms.length && alive();i++){ ms[i].querySelector('circle').setAttribute('fill','#ffeb3b');
+         ms[i].querySelector('circle').setAttribute('r','32'); znote(500+i*70,.1,'sine',.1);
+         await zwait(110, alive); ms[i].querySelector('circle').setAttribute('r','24'); }
+       ms.forEach(m=>m.querySelector('circle').setAttribute('fill','#fff59d'));
+       let add=''; for(let k=0;k<25;k++){ const x=260+Math.random()*480, y=200+Math.random()*190;
+         add+=`<circle cx="${x}" cy="${y}" r="7" fill="#fff59d" stroke="#f9a825" stroke-width="2"/>`; }
+       zq('#many').insertAdjacentHTML('beforeend', add);
+       if (taps>=2) zq('#cnt').textContent = '¡Tengo casi 140.000 mensajeros! ⭐';
+       busy=false; }));
+   }},
+ { cap:1, title:'Veo, pienso y salto',
+   text:'Mis ojos VEN, mi cerebro PIENSA y mis patas SALTAN. Toca mis ojos, luego mi cerebro y luego mis patas.',
+   ask:'¿Qué hacen sus ojos? ¿Y sus piernas?',
+   run(alive){
+     const X=500,Y=290,S=1.9;
+     ZG.innerHTML = zfly('z',X,Y,S) +
+       `<g id="b0"></g><g id="b1"></g><g id="b2"></g>
+        <circle class="hot" data-k="0" cx="${X-30*S}" cy="${Y-12*S}" r="60" fill="transparent"/>
+        <circle class="hot" data-k="1" cx="${X}" cy="${Y-70*S}" r="55" fill="transparent"/>
+        <circle class="hot" data-k="2" cx="${X}" cy="${Y+80*S}" r="70" fill="transparent"/>`;
+     const lab=[['👁️ ¡Mis ojos VEN!',190,150],['⚡ ¡Mi cerebro PIENSA!',800,90],['🦵 ¡Mis patas SALTAN!',800,500]];
+     let step=0;
+     ZG.querySelectorAll('.hot').forEach(h => on(h, async () => {
+       const k=+h.dataset.k;
+       if (k!==step){ zoops(); zsay(step===0?'¡Primero los ojos! Toca mis ojos.':step===1?'Ahora toca mi cerebro, arriba de mi cabeza.':'Ahora toca mis patas.'); return; }
+       zpop(); zq('#b'+k).innerHTML = zbubble(lab[k][1],lab[k][2],lab[k][0],340); step++;
+       if (step===3){ zchime();
+         await ztween(700, t => zmove(zq('#z'),X,Y-Math.sin(Math.PI*t)*120,S), alive);
+         zsay('¡Muy bien! Primero VEO, luego PIENSO y después SALTO. ¡Así me escapo!'); }
+     }));
+   }},
+ { cap:1, title:'Juego: ¡Salva a Zumbi!',
+   text:'¡Viene el matamoscas! Ayuda al mensaje: toca OJO, CEREBRO y PATAS, en ese orden, antes de que llegue.',
+   ask:'¡Pasen de a uno! El salón cuenta en voz alta: ¡uno, dos, tres!',
+   run(alive){
+     ZG.innerHTML = zfly('z',720,250,1.3) +
+       `<g id="sw"><line x1="0" y1="80" x2="-40" y2="300" stroke="#8d2a1f" stroke-width="16" stroke-linecap="round"/>
+         <rect x="-65" y="-85" width="130" height="165" rx="20" fill="#e74c3c" stroke="#fff" stroke-width="5"/></g>
+        <g id="msg"></g>` +
+       zbtn('k0',130,455,220,74,'👁️ OJO','#4fd1ff','#0b2540') + zbtn('k1',390,455,220,74,'⚡ CEREBRO','#ffd54a','#4a3800') +
+       zbtn('k2',650,455,220,74,'🦵 PATAS','#5be38a','#0b3a1e') + '<g id="again"></g>';
+     const sw=zq('#sw'), z=zq('#z'); let step=0, over=false, id=zrun;
+     const play = async () => {
+       step=0; over=false; zq('#msg').innerHTML=''; zq('#again').innerHTML=''; zmove(z,720,250,1.3); z.style.opacity=1;
+       ['k0','k1','k2'].forEach(k=>zq('#'+k+' rect').setAttribute('stroke','#fff'));
+       await ztween(9000, t => { if(over) return; const e=t; sw.setAttribute('transform',`translate(${90+e*470} ${230+Math.sin(t*20)*6}) scale(${.6+e*.5})`);
+         if (t>=1 && !over){ over=true; fail(); } }, alive);
+     };
+     const win = async () => { over=true; zchime(); zq('#msg').innerHTML = zbubble(500,110,'¡La salvaste! 🎉',330);
+       const fly = ztween(1000, t => zmove(z,720+t*300,250-t*260,1.3,-20*t), alive);
+       const hit = ztween(300, t => sw.setAttribute('transform',`translate(${560+t*120} ${250}) scale(1.1)`), alive);
+       await Promise.all([fly,hit]); zconfetti(alive); zsay('¡Lo lograste! El mensaje llegó rapidísimo y Zumbi se escapó. ¿Quién más quiere jugar?');
+       zq('#again').innerHTML = zbtn('ag',800,30,180,60,'🔁 Otra vez','#b388ff','#fff',24); on(zq('#ag'), play); };
+     const fail = async () => { zoops(); zq('#msg').innerHTML = zbubble(500,110,'¡Uy! Zumbi se asustó y voló solita',520);
+       await ztween(800, t => zmove(z,720+t*300,250-t*260,1.3), alive);
+       zsay('¡Casi! Tenemos que ser más rápidos. ¡Intentemos otra vez!');
+       zq('#again').innerHTML = zbtn('ag',800,30,180,60,'🔁 Otra vez','#b388ff','#fff',24); on(zq('#ag'), play); };
+     ['k0','k1','k2'].forEach((k,i) => on(zq('#'+k), () => {
+       if (over) return;
+       if (i!==step){ zoops(); const b=zq('#k'+step); b.classList.remove('zshake'); void b.getBBox(); b.classList.add('zshake'); return; }
+       znote(523+i*130,.15,'sine',.14); zq('#'+k+' rect').setAttribute('stroke','#17305e'); step++;
+       if (step===3) win();
+     }));
+     play();
+   }},
+ // ===== CAPÍTULO 2 =====
+ { cap:2, title:'Los científicos',
+   text:'Unos científicos querían saber cómo funciona mi cerebro. Le tomaron muchísimas fotos con un microscopio súper potente. ¡Toca el microscopio!',
+   ask:'¿Saben qué es un científico? ¿Qué hace?',
+   run(alive){
+     ZG.innerHTML = `<text x="200" y="330" font-size="150" text-anchor="middle">👩‍🔬</text><text x="380" y="330" font-size="150" text-anchor="middle">👨‍🔬</text>
+       <g id="mic" class="zbtn"><circle cx="640" cy="300" r="95" fill="#fff" opacity=".6"/><text x="640" y="350" font-size="140" text-anchor="middle">🔬</text></g>
+       ${zfly('z',850,220,.8)}<g id="pics"></g><rect id="flash" width="1000" height="560" fill="#fff" opacity="0" pointer-events="none"/>
+       <text id="cnt" x="640" y="470" text-anchor="middle" font-size="30" font-weight="900" fill="#17305e"></text>`;
+     let n=0;
+     on(zq('#mic'), async () => { n++; znote(1500,.05,'square',.06);
+       await ztween(250, t => zq('#flash').setAttribute('opacity',.7*(1-t)), alive);
+       const x=480+Math.random()*320, y=380-Math.random()*40;
+       zq('#pics').insertAdjacentHTML('beforeend',`<rect x="${x}" y="${y}" width="60" height="44" rx="4" fill="#ffd1e0" stroke="#17305e" stroke-width="3" transform="rotate(${Math.random()*30-15} ${x+30} ${y+22})"/>`);
+       zq('#cnt').textContent = n<4 ? '📸 ¡Clic!' : '📸 ¡Millones de fotos!'; });
+   }},
+ { cap:2, title:'El mapa de mi cerebro',
+   text:'Con las fotos dibujaron un mapa de mi cerebro, ¡lleno de caminitos de colores! Toca el cerebro para ayudar a dibujarlo.',
+   ask:'¿Para qué sirve un mapa?',
+   run(alive){
+     ZG.innerHTML = zbrain(500,290,1.25) + '<g id="roads"></g><text id="cnt" x="500" y="535" text-anchor="middle" font-size="28" font-weight="900" fill="#17305e"></text>';
+     const cols=['#4fd1ff','#ff6b9a','#ffd54a','#5be38a','#b388ff','#ff9f43']; let n=0;
+     const rp = () => { const e=[[-150,0,62,82],[150,0,62,82],[0,0,100,70]][Math.floor(Math.random()*3)];
+       const a=Math.random()*6.28, r=Math.sqrt(Math.random())*.9; return [500+(e[0]+Math.cos(a)*e[2]*r)*1.25, 290+(e[1]+Math.sin(a)*e[3]*r)*1.25]; };
+     onSvg(() => { n++; zpop();
+       let h=''; for(let i=0;i<8;i++){ const [a,b]=rp(),[c,d]=rp(),[e,f]=rp();
+         h+=`<path d="M${a|0},${b|0} Q${c|0},${d|0} ${e|0},${f|0}" stroke="${cols[(n+i)%6]}" stroke-width="4" fill="none" stroke-linecap="round"/>`; }
+       zq('#roads').insertAdjacentHTML('beforeend',h);
+       if (n===10){ zchime(); zconfetti(alive); zq('#cnt').textContent='¡Mapa terminado! Casi 140.000 mensajeros 🗺️';
+         zsay('¡Terminamos el mapa! Ahora los científicos pueden ver por dónde viajan mis mensajes.'); }
+       else if (n<10) zq('#cnt').textContent = 'Caminitos: '+n+' de 10'; });
+   }},
+ { cap:2, title:'Juego: ¿Qué hace cada parte?',
+   text:'Une cada parte de mi cuerpo con lo que hace. Toca una parte y después lo que hace.',
+   ask:'¿Qué parte de su cuerpo usan para ver? ¿Y para pensar?',
+   run(alive){
+     const L=[['👁️','Ojos','ver'],['🧠','Cerebro','pensar'],['🦵','Patas','saltar'],['wing','Alas','volar']];
+     const R=[['☁️','Volar','volar'],['👀','Ver','ver'],['⬆️','Saltar','saltar'],['💭','Pensar','pensar']];
+     let h='<g id="lines"></g>';
+     L.forEach((it,i)=>{ const y=100+i*105; h+=`<g class="lft zbtn" data-k="${it[2]}" data-y="${y}"><rect x="100" y="${y}" width="290" height="84" rx="18" fill="#fff" stroke="#17305e" stroke-width="4"/>
+       ${it[0]==='wing' ? `<ellipse cx="160" cy="${y+42}" rx="34" ry="20" fill="rgba(200,235,255,.9)" stroke="#6fb3e0" stroke-width="3" transform="rotate(-20 160 ${y+42})"/>` : `<text x="160" y="${y+60}" font-size="50" text-anchor="middle">${it[0]}</text>`}
+       <text x="215" y="${y+55}" font-size="34" font-weight="900" fill="#17305e">${it[1]}</text></g>`; });
+     R.forEach((it,i)=>{ const y=100+i*105; h+=`<g class="rgt zbtn" data-k="${it[2]}" data-y="${y}"><rect x="610" y="${y}" width="290" height="84" rx="18" fill="#fff" stroke="#17305e" stroke-width="4"/>
+       <text x="670" y="${y+60}" font-size="50" text-anchor="middle">${it[0]}</text><text x="725" y="${y+55}" font-size="34" font-weight="900" fill="#17305e">${it[1]}</text></g>`; });
+     ZG.innerHTML = h; let sel=null, ok=0;
+     ZG.querySelectorAll('.lft').forEach(g => on(g, () => { if(g.dataset.done) return;
+       ZG.querySelectorAll('.lft rect').forEach(r=>{ if(!r.parentNode.dataset.done) r.setAttribute('fill','#fff'); });
+       g.querySelector('rect').setAttribute('fill','#fff59d'); sel=g; zpop(); }));
+     ZG.querySelectorAll('.rgt').forEach(g => on(g, () => { if(!sel || g.dataset.done) return;
+       if (g.dataset.k===sel.dataset.k){ znote(660,.2,'sine',.14);
+         [sel,g].forEach(x=>{ x.dataset.done=1; x.querySelector('rect').setAttribute('fill','#c8f7d4'); });
+         zq('#lines').insertAdjacentHTML('beforeend',`<line x1="390" y1="${+sel.dataset.y+42}" x2="610" y2="${+g.dataset.y+42}" stroke="#2e9e5b" stroke-width="8" stroke-linecap="round"/>`);
+         sel=null; ok++;
+         if (ok===4){ zchime(); zconfetti(alive); zsay('¡Perfecto! Unieron todas las partes. ¡Son unos expertos!'); }
+       } else { zoops(); g.classList.remove('zshake'); void g.getBBox(); g.classList.add('zshake'); }
+     }));
+   }},
+ { cap:2, title:'¡Una mosca robot!',
+   text:'Los científicos también construyeron una mosca robot. ¡Se llama Robo-Zumbi! Ella también puede ver, pensar y moverse. ¡Tócala!',
+   ask:'¡Miren! En el salón tenemos una mosca robot de verdad. ¿Le acercamos la mano a ver qué hace?',
+   run(alive){
+     ZG.innerHTML = zfly('z',300,280,1.3) + zfly('r',700,280,1.3,true) + '<g id="bub"></g>';
+     on(zq('#r'), async () => { zbeep(); zq('#bub').innerHTML = zbubble(700,110,'¡Bip bup! Hola 🤖',300);
+       await ztween(500, t => zmove(zq('#r'),700,280-Math.sin(Math.PI*t)*50,1.3), alive); });
+     on(zq('#z'), () => { zbuzz(); zq('#bub').innerHTML = zbubble(300,110,'¡Es mi amiga robot!',320); });
+   }},
+ { cap:2, title:'Carrera de escape',
+   text:'¡Viene el matamoscas para las dos! Toca el botón y mira cómo escapan. Las dos ven, piensan y se mueven.',
+   ask:'¿Quién escapó primero? ¿Se parecen?',
+   run(alive){
+     ZG.innerHTML = zfly('z',330,300,1.1) + zfly('r',700,300,1.1,true) +
+       `<g id="s1"><rect x="-55" y="-70" width="110" height="140" rx="18" fill="#e74c3c" stroke="#fff" stroke-width="5"/></g>
+        <g id="s2"><rect x="-55" y="-70" width="110" height="140" rx="18" fill="#e74c3c" stroke="#fff" stroke-width="5"/></g><g id="bub"></g>` +
+       zbtn('go',330,470,340,74,'🪰 ¡Matamoscas!');
+     const z=zq('#z'), r=zq('#r'), s1=zq('#s1'), s2=zq('#s2'); let busy=false;
+     const reset = () => { zmove(z,330,300,1.1); zmove(r,700,300,1.1); s1.setAttribute('transform','translate(330 -120)'); s2.setAttribute('transform','translate(700 -120)'); zq('#bub').innerHTML=''; };
+     reset();
+     on(zq('#go'), async () => { if(busy) return; busy=true; reset();
+       await ztween(1400, t => { const e=zease(t); s1.setAttribute('transform',`translate(330 ${-120+e*290})`); s2.setAttribute('transform',`translate(700 ${-120+e*290})`); }, alive);
+       zbuzz(); zbeep();
+       await ztween(700, t => { zmove(z,330-t*260,300-t*220,1.1,-15*t); zmove(r,700+t*260,300-t*220,1.1,15*t); }, alive);
+       zq('#bub').innerHTML = zbubble(500,110,'¡Las dos escaparon! 🎉',360); zchime(); busy=false; });
+   }},
+ { cap:2, title:'¡Exploradores de cerebros!',
+   text:'¡Felicitaciones! Ahora saben cómo funciona el cerebro de una mosca. ¡Son exploradores de cerebros! Toca la medalla.',
+   ask:'¿Qué fue lo que más les gustó de la historia de Zumbi?',
+   run(alive){
+     ZG.innerHTML = `<g id="med" class="zbtn"><path d="M440,90 L500,200 L560,90" fill="#4fd1ff" stroke="#17305e" stroke-width="4"/>
+       <circle cx="500" cy="280" r="120" fill="#ffd54a" stroke="#c79100" stroke-width="10"/><circle cx="500" cy="280" r="92" fill="none" stroke="#fff3c4" stroke-width="5"/>
+       <text x="500" y="270" text-anchor="middle" font-size="70">🧠</text><text x="500" y="330" text-anchor="middle" font-size="26" font-weight="900" fill="#5a4500">EXPLORADORES</text></g>
+       ${zfly('z',180,300,.9)}${zfly('r',820,300,.9,true)}`;
+     on(zq('#med'), () => { zchime(); zconfetti(alive); });
+   }}
+];
+
+function zdots(){
+  $('#zDots').innerHTML = ZS.map((s,i)=>`<span data-i="${i}" class="${i===zsc?'on':(zDone.has(i)?'done':'')}"></span>`).join('');
+  $('#zDots').querySelectorAll('span').forEach(d => d.onclick = () => zshow(+d.dataset.i));
+  $('#zCap1').classList.toggle('on', ZS[zsc].cap===1); $('#zCap2').classList.toggle('on', ZS[zsc].cap===2);
+}
+function zshow(i){
+  zsc = Math.max(0, Math.min(ZS.length-1, i)); zrun++; const alive = zalive(zrun);
+  zDone.add(zsc); ZFX.innerHTML = '';
+  const S = ZS[zsc];
+  zSvgHandler = null;
+  $('#zTitle').textContent = S.title;
+  zsay(S.text, S.ask);
+  $('#zPrev').disabled = zsc===0;
+  $('#zNext').textContent = zsc===5 ? 'Capítulo 2 ▶' : (zsc===ZS.length-1 ? '🏁 Volver al inicio' : 'Siguiente ▶');
+  zdots();
+  if (zsc===0 && !zUnlocked){
+    ZG_START();
+    return;
+  }
+  S.run(alive);
+}
+function ZG_START(){
+  const g = ZG;
+  g.innerHTML = zapple(330,390,1.1) + zfly('z',620,260,1.3) +
+    `<g id="start" class="zbtn"><rect x="300" y="150" width="400" height="120" rx="60" fill="#ff6b5a" stroke="#fff" stroke-width="6"/>
+     <text x="500" y="228" text-anchor="middle" font-size="46" font-weight="900" fill="#fff">▶ ¡Empezar!</text></g>`;
+  g.querySelector('#start').addEventListener('pointerdown', e => { e.preventDefault(); zUnlocked = true; zaudio(); zshow(0); });
+}
+
+$('#zPrev').onclick = () => zshow(zsc-1);
+$('#zNext').onclick = () => { zUnlocked = true; zaudio(); zshow(zsc===ZS.length-1 ? 0 : zsc+1); };
+$('#zAgain').onclick = () => { zUnlocked = true; zshow(zsc); };
+$('#zSay').onclick = () => { zUnlocked = true; zspeak(ZS[zsc].text); };
+$('#zVoice').onclick = e => { zVoiceOn = !zVoiceOn; e.target.classList.toggle('on', zVoiceOn);
+  e.target.textContent = '🗣️ Voz: ' + (zVoiceOn ? 'SÍ' : 'NO'); if (!zVoiceOn) zstopVoice(); };
+$('#zCap1').onclick = () => { zUnlocked = true; zshow(0); };
+$('#zCap2').onclick = () => { zUnlocked = true; zshow(6); };
+if (window.speechSynthesis) { try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = () => {}; } catch(e){} }
+setView('zumbi');
 
 // Modo sin conexión (solo cuando se abre desde un sitio web https)
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {

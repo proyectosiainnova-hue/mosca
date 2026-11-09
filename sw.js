@@ -1,5 +1,5 @@
 // Guarda la página en el iPad para que funcione sin internet.
-const CACHE = 'mosca-v1';
+const CACHE = 'mosca-v2';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-180.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
